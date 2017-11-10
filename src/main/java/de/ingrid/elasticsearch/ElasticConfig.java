@@ -12,7 +12,7 @@ public class ElasticConfig {
     @Value("${elastic.isRemote:true}")
     public boolean isRemote;
     
-    @Value("${elastic.remote.hosts:localhost:9300}")
+    @Value("${elastic.remoteHosts:localhost:9300}")
     public String[] remoteHosts;
     
     @Value("${elastic.indexWithAutoId:true}")
