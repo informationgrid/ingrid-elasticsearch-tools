@@ -65,4 +65,6 @@ public class ElasticConfig {
     @Value("${index.fields.exclude:}")
     public String indexFieldsExcluded;
 
+    public String[] docProducerIndices;
+
 }

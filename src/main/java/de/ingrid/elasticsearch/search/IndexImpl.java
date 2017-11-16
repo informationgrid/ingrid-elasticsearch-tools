@@ -88,8 +88,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private IndexManager indexManager;
 
-    public String[] docProducerIndices;
-
     public List<String> indexSearchInTypes = new ArrayList<String>();
 
     @Autowired
@@ -141,14 +139,12 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             // the necessary value id the results ID
         }
 
-        String[] indexNames = this.docProducerIndices;
+        String[] indexNames = this.config.docProducerIndices;
         
         if (indexNames.length == 0) {
             log.warn( "No configured index to search on!" );
             return new IngridHits( 0, new IngridHit[0] );
         }
-        
-        BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexNames );
         
         // if we are remotely connected to an elasticsearch node then get the real indices of the aliases
         // otherwise we also get the results from other indices, since an alias can contain several indices!
@@ -160,12 +156,13 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 realIndices.add( realIndex );
             }
         }
-        indexNames = realIndices.toArray( new String[0] );
+        String[] realIndexNames = realIndices.toArray( new String[0] );
         
+        BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexNames );
         
         // search prepare
-        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( indexNames  )
-                .setQuery( config.indexEnableBoost ? funcScoreQuery : query ) // Query
+        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( realIndexNames  )
+                // .setQuery( config.indexEnableBoost ? funcScoreQuery : query ) // Query
                 .setQuery( config.indexEnableBoost 
                         ? QueryBuilders.boolQuery().must( funcScoreQuery ).must( indexTypeFilter )
                         : QueryBuilders.boolQuery().must( query ).must( indexTypeFilter ) ) // Query
@@ -435,7 +432,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     public ElasticDocument getDocById(Object id) {
         String idAsString = String.valueOf( id );
-        String[] indexNames = this.docProducerIndices;
+        String[] indexNames = this.config.docProducerIndices;
         // itereate over all indices until document was found
         for (String indexName : indexNames) {
             String[] aliasInfo = indexName.split( ":" );
