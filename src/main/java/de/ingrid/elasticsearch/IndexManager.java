@@ -74,7 +74,6 @@ import de.ingrid.utils.xml.XMLSerializer;
 public class IndexManager implements IIndexManager {
     private static final Logger log = LogManager.getLogger( IndexManager.class );
 
-    @Autowired
     private ElasticConfig _config;
 
     private Client _client;
@@ -86,7 +85,12 @@ public class IndexManager implements IIndexManager {
     private Properties _props = new Properties();
 
     @Autowired
-    public IndexManager(ElasticsearchNodeFactoryBean elastic) throws Exception {
+    public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) throws Exception {
+
+        // do not initialize when using central index
+        if (config.esCommunicationThroughIBus) return;
+        
+        _config = config;
         _client = elastic.getClient();
         _bulkProcessor = BulkProcessor.builder( _client, getBulkProcessorListener() ).setFlushInterval( TimeValue.timeValueSeconds( 5l ) ).build();
         iPlugDocIdMap = new HashMap<String, String>();

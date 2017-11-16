@@ -102,7 +102,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             this.queryConverter = qc;
             this.facetConverter = fc;
 
-            log.info( "Elastic Search Settings: " + indexManager.printSettings() );
+            if (!config.esCommunicationThroughIBus) {
+                log.info( "Elastic Search Settings: " + indexManager.printSettings() );
+            }
 
         } catch (Exception e) {
             log.error( "Error during initialization of ElasticSearch-Client!" );

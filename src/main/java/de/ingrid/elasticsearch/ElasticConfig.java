@@ -67,4 +67,7 @@ public class ElasticConfig {
 
     public String[] docProducerIndices;
 
+    @Value("${elastic.communication.ibus:false}")
+    public boolean esCommunicationThroughIBus;
+
 }

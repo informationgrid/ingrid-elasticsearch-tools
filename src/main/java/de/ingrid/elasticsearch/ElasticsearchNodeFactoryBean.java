@@ -117,9 +117,13 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
     public void afterPropertiesSet() throws Exception {
         // only setup elastic nodes if indexing is enabled
         if (config.isEnabled) {
-            if (config.isRemote) {
+            if (config.esCommunicationThroughIBus) {
+                // do not initialize Elasticsearch since we use central index!
+                
+            } else if (config.isRemote) {
                 log.debug( "Elasticsearch: creating transport client" );
                 createTransportClient( config.remoteHosts );
+                
             } else {
                 log.debug( "Elasticsearch: creating node" );
                 internalCreateNode();
