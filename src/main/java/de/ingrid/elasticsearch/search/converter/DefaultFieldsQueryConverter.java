@@ -33,7 +33,6 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import de.ingrid.elasticsearch.ElasticConfig;
 import de.ingrid.elasticsearch.search.IQueryParsers;

@@ -67,6 +67,11 @@
       <version>4.12</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>de.ingrid</groupId>
+      <artifactId>ingrid-ibus-client</artifactId>
+      <version>3.6.2</version>
+    </dependency>
   </dependencies>
   
   <build>

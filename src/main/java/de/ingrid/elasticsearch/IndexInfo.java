@@ -22,7 +22,15 @@
  */
 package de.ingrid.elasticsearch;
 
-public class IndexInfo {
+import java.io.Serializable;
+
+public class IndexInfo implements Serializable {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -2290409004042430234L;
+    
+    private String componentIdentifier;
     private String toIndex;
     private String toType;
     private String toAlias = null;
@@ -78,6 +86,12 @@ public class IndexInfo {
     }
     public void setToAlias(String toAlias) {
         this.toAlias = toAlias;
+    }
+    public String getComponentIdentifier() {
+        return componentIdentifier;
+    }
+    public void setComponentIdentifier(String componentIdentifier) {
+        this.componentIdentifier = componentIdentifier;
     }
     
 }

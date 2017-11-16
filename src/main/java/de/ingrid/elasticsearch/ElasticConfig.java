@@ -42,17 +42,27 @@ public class ElasticConfig {
     @Value("${elastic.indexFieldSummary:}")
     public String indexFieldSummary;
 
+    
+    @Value("${index.boost.enable:false}")
     public boolean indexEnableBoost;
 
+    
+    @Value("${communication.clientName:}")
     public String communicationProxyUrl;
 
+    @Value("${index.search.groupByUrl:false}")
     public boolean groupByUrl;
 
+    @Value("${plugdescription.partner:}")
     public String[] partner;
 
+    @Value("${plugdescription.provider:}")
     public String[] provider;
 
+    @Value("${index.fields.include:*}")
     public String indexFieldsIncluded;
 
+    @Value("${index.fields.exclude:}")
     public String indexFieldsExcluded;
+
 }

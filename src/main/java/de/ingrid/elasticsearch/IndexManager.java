@@ -24,8 +24,14 @@ package de.ingrid.elasticsearch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,6 +45,8 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -48,6 +56,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -62,7 +71,7 @@ import de.ingrid.utils.xml.XMLSerializer;
  *
  */
 @Service
-public class IndexManager {
+public class IndexManager implements IIndexManager {
     private static final Logger log = LogManager.getLogger( IndexManager.class );
 
     @Autowired
@@ -71,11 +80,16 @@ public class IndexManager {
     private Client _client;
     
     private BulkProcessor _bulkProcessor;
+    
+    private Map<String, String> iPlugDocIdMap;
+    
+    private Properties _props = new Properties();
 
     @Autowired
     public IndexManager(ElasticsearchNodeFactoryBean elastic) throws Exception {
         _client = elastic.getClient();
         _bulkProcessor = BulkProcessor.builder( _client, getBulkProcessorListener() ).setFlushInterval( TimeValue.timeValueSeconds( 5l ) ).build();
+        iPlugDocIdMap = new HashMap<String, String>();
     }
 
     /**
@@ -117,7 +131,6 @@ public class IndexManager {
      * @param indexinfo
      * @param id
      * @param updateOldIndex
-     *            TODO
      */
     public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex) {
         DeleteRequest deleteRequest = new DeleteRequest();
@@ -226,8 +239,7 @@ public class IndexManager {
                 source = XMLSerializer.getContents( defaultMappingStream );
 
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                log.error( "Error creating index", e );
             }
         }
         
@@ -282,10 +294,20 @@ public class IndexManager {
         return null;
     }
 
-    public MappingMetaData getMapping(IndexInfo indexInfo) {
+    public Map<String, Object> getMapping(IndexInfo indexInfo) {
         String indexName = getIndexNameFromAliasName( indexInfo.getRealIndexName(), null );
         ClusterState cs = _client.admin().cluster().prepareState().setIndices( indexName ).execute().actionGet().getState();
-        return cs.getMetaData().index( indexName ).mapping( indexInfo.getToType() );
+        MappingMetaData mappingMetaData = cs.getMetaData().index( indexName ).mapping( indexInfo.getToType() );
+        if (mappingMetaData == null) {
+            return null;
+        } else {
+            try {
+                return mappingMetaData.getSourceAsMap();
+            } catch (IOException e) {
+                log.error( "Error getting source as map from mappingMetaData", e );
+                return null;
+            }
+        }
     }
 
     public void refreshIndex(String indexName) {
@@ -302,6 +324,148 @@ public class IndexManager {
 
     public void shutdown() throws Exception {
         _client.close();
+    }
+
+    @Override
+    public void checkAndCreateInformationIndex() {
+        if (!indexExists( "ingrid_meta" )) {
+            InputStream ingridMetaMappingStream = getClass().getClassLoader().getResourceAsStream( "ingrid-meta-mapping.json" );
+            try {
+                String source = XMLSerializer.getContents( ingridMetaMappingStream );
+                createIndex( "ingrid_meta", "info", source );
+            } catch (IOException e) {
+                log.error( "Could not deserialize: ingrid-meta-mapping.json", e );
+            }
+        }
+    }
+
+    @Override
+    public String getIndexTypeIdentifier(IndexInfo indexInfo) {
+        String componentIdentifier = indexInfo.getComponentIdentifier();
+        if (componentIdentifier == null) componentIdentifier = _config.communicationProxyUrl;
+        String clientId = componentIdentifier.replace( "/", "" );
+        return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
+    }
+
+    @Override
+    public void addBasicFields(ElasticDocument document, IndexInfo info) {
+        String identifier = info.getIdentifier();
+        String datatypes = (String) _props.get( "plugdescription.dataType." + identifier );
+        String partner = (String) _props.get( "plugdescription.partner." + identifier );
+        String provider = (String) _props.get( "plugdescription.provider." + identifier );
+
+        if (datatypes != null) {
+            document.put( "datatype", datatypes.split( "," ) );
+        } else {
+            log.error( "Could not get datatype from config" );
+            // TODO: document.put( "datatype", _config.datatypes.toArray( new String[0] ) );
+        }
+
+        if (partner != null) {
+            document.put( "partner", partner.split( "," ) );
+        } else {
+            document.put( "partner", _config.partner );
+        }
+
+        if (provider != null) {
+            document.put( "provider", provider.split( "," ) );
+        } else {
+            document.put( "provider", _config.provider );
+        }
+    }
+
+    @Override
+    public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
+        String docId = iPlugDocIdMap.get( id );
+        IndexRequest indexRequest = new IndexRequest();
+        indexRequest.index( "ingrid_meta" ).type( "info" );
+
+        if (docId == null) {
+            SearchResponse response = _client.prepareSearch( "ingrid_meta" )
+                    .setTypes( "info" )
+                    .setQuery( QueryBuilders.termQuery( "plugId", id ) )
+                    // .setFetchSource( new String[] { "*" }, null )
+                    .setSize( 1 )
+                    .get();
+
+            long totalHits = response.getHits().totalHits;
+
+            // do update document
+            if (totalHits == 1) {
+                docId = response.getHits().getAt( 0 ).getId();
+                iPlugDocIdMap.put( id, docId );
+                UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", docId );
+                // indexRequest.id( docId );
+                // add index request to queue to avoid sending of too many requests
+                _bulkProcessor.add( updateRequest.doc( info, XContentType.JSON ) );
+            } else if (totalHits == 0) {
+                // create document immediately so that it's available for further requests
+                docId = _client.index( indexRequest.source( info, XContentType.JSON ) ).get().getId();
+                iPlugDocIdMap.put( id, docId );
+            } else {
+                log.error( "There is more than one iPlug information document in the index of: " + id );
+            }
+
+        } else {
+            // indexRequest.id( docId );
+            UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", docId );
+            _bulkProcessor.add( updateRequest.doc( info, XContentType.JSON ) );
+        }
+    }
+
+    @Override
+    public void updateHearbeatInformation(List<String> iPlugIds) throws InterruptedException, ExecutionException, IOException {
+        for (String id : iPlugIds) {
+            try {
+                checkAndCreateInformationIndex();
+                updateIPlugInformation(id, getHearbeatInfo(id));
+            } catch (IndexNotFoundException ex) {
+                log.warn( "Index for iPlug information not found ... creating: " + id );
+            }
+        }
+    }
+    
+    /**
+     * Generate a new ID for a new index of the format <index-name>_<id>, where <id> is number counting up.
+     * 
+     * @param name
+     * @return
+     */
+    public static String getNextIndexName(String name) {
+        if (name == null) {
+            throw new RuntimeException( "Old index name must not be null!" );
+        }
+        boolean isNew = false;
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyyMMddHHmmssS" );
+
+        int delimiterPos = name.lastIndexOf( "_" );
+        if (delimiterPos == -1) {
+            isNew = true;
+        } else {
+            try {
+                dateFormat.parse( name.substring( delimiterPos + 1 ) );
+            } catch (Exception ex) {
+                isNew = true;
+            }
+        }
+
+        String date = dateFormat.format( new Date() );
+
+        if (isNew) {
+            return name + "_" + date;
+        } else {
+            return name.substring( 0, delimiterPos + 1 ) + date;
+        }
+    }
+    
+    private String getHearbeatInfo(String id) throws IOException {
+        return XContentFactory.jsonBuilder().startObject()
+                .field( "plugId", _config.communicationProxyUrl )
+                .field( "indexId", id )
+                .field( "lastHeartbeat", new Date() )
+                .endObject()
+                .string();
     }
 
 }
