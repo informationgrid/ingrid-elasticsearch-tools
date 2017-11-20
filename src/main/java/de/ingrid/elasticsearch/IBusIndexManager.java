@@ -169,7 +169,6 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     @Override
     public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
-        log.warn( "The method is not implemented yet: updateIPlugInformation" );
         IngridCall call = prepareCall( "updateIPlugInformation" );
         Map<String, Object> map = new HashMap<String, Object>();
         map.put( "id", id );
@@ -223,7 +222,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     @Override
     public void updateHearbeatInformation(List<String> iPlugIds) throws InterruptedException, ExecutionException, IOException {
-        IngridCall call = prepareCall( "getIndexNameFromAliasName" );
+        IngridCall call = prepareCall( "updateHearbeatInformation" );
         call.setParameter(iPlugIds);
         
         try {
