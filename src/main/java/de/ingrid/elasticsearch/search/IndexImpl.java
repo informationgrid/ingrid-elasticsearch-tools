@@ -375,7 +375,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
 
-        detail.setArray( PlugDescription.DATA_SOURCE_NAME, dHit.getField( PlugDescription.DATA_SOURCE_NAME ).getValues().toArray(new String[0]) );
+        detail.setDataSourceName( dHit.getField( PlugDescription.DATA_SOURCE_NAME ).getValue().toString() );
         detail.setArray( PlugDescription.DATA_TYPE, dHit.getField( PlugDescription.DATA_TYPE).getValues().toArray(new String[0]) );
         detail.setArray( PlugDescription.PARTNER, dHit.getField( PlugDescription.PARTNER ).getValues().toArray(new String[0]) );
         detail.setArray( PlugDescription.PROVIDER, dHit.getField( PlugDescription.PROVIDER ).getValues().toArray(new String[0]) );
