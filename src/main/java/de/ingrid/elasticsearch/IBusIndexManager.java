@@ -2,11 +2,9 @@ package de.ingrid.elasticsearch;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.log4j.Logger;
@@ -148,21 +146,6 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
             log.error( "Error relaying index message: getIndexTypeIdentifier", e );
         }
         return null;
-    }
-
-    @Override
-    public void addBasicFields(ElasticDocument document, IndexInfo info) {
-        IngridCall call = prepareCall( "addBasicFields" );
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put( "document", document );
-        map.put( "info", info );
-        call.setParameter( map );
-        
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: addBasicFields", e );
-        }
     }
 
     @Override

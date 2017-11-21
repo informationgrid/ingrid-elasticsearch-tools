@@ -24,8 +24,6 @@ public interface IIndexManager {
     
     public String getIndexTypeIdentifier(IndexInfo indexInfo);
     
-    public void addBasicFields(ElasticDocument document, IndexInfo info);
-    
     public void update(IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex);
     
     public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException;

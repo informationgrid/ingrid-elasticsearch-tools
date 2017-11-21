@@ -96,7 +96,15 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         this.indexManager = indexManager;
         this.config = config;
         
-        detailFields = Stream.concat( Arrays.stream( new String[] { config.indexFieldTitle, config.indexFieldSummary } ), Arrays.stream( config.additionalSearchDetailFields ) )
+        detailFields = Stream.concat( 
+                Arrays.stream( new String[] { 
+                        config.indexFieldTitle, 
+                        config.indexFieldSummary, 
+                        PlugDescription.PARTNER, 
+                        PlugDescription.PROVIDER, 
+                        PlugDescription.DATA_TYPE, 
+                        PlugDescription.DATA_SOURCE_NAME } ),
+                Arrays.stream( config.additionalSearchDetailFields ) )
             .toArray(String[]::new);
         
         try {
@@ -367,7 +375,10 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
 
-        addPlugDescriptionInformations( detail, requestedFields );
+        detail.setArray( PlugDescription.DATA_SOURCE_NAME, dHit.getField( PlugDescription.DATA_SOURCE_NAME ).getValues().toArray(new String[0]) );
+        detail.setArray( PlugDescription.DATA_TYPE, dHit.getField( PlugDescription.DATA_TYPE).getValues().toArray(new String[0]) );
+        detail.setArray( PlugDescription.PARTNER, dHit.getField( PlugDescription.PARTNER ).getValues().toArray(new String[0]) );
+        detail.setArray( PlugDescription.PROVIDER, dHit.getField( PlugDescription.PROVIDER ).getValues().toArray(new String[0]) );
 
         detail.setDocumentId( documentId );
         if (requestedFields != null) {
@@ -401,16 +412,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
 
         return detail;
-    }
-
-    private void addPlugDescriptionInformations(IngridHitDetail detail, String[] fields) {
-        for (int i = 0; i < fields.length; i++) {
-            if (fields[i].equals( PlugDescription.PARTNER )) {
-                detail.setArray( PlugDescription.PARTNER, config.partner );
-            } else if (fields[i].equals( PlugDescription.PROVIDER )) {
-                detail.setArray( PlugDescription.PROVIDER, config.provider );
-            }
-        }
     }
 
     @Override

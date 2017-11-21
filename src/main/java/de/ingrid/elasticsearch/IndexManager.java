@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
@@ -82,8 +81,6 @@ public class IndexManager implements IIndexManager {
     
     private Map<String, String> iPlugDocIdMap;
     
-    private Properties _props = new Properties();
-
     @Autowired
     public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) throws Exception {
 
@@ -349,33 +346,6 @@ public class IndexManager implements IIndexManager {
         if (componentIdentifier == null) componentIdentifier = _config.communicationProxyUrl;
         String clientId = componentIdentifier.replace( "/", "" );
         return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
-    }
-
-    @Override
-    public void addBasicFields(ElasticDocument document, IndexInfo info) {
-        String identifier = info.getIdentifier();
-        String datatypes = (String) _props.get( "plugdescription.dataType." + identifier );
-        String partner = (String) _props.get( "plugdescription.partner." + identifier );
-        String provider = (String) _props.get( "plugdescription.provider." + identifier );
-
-        if (datatypes != null) {
-            document.put( "datatype", datatypes.split( "," ) );
-        } else {
-            log.error( "Could not get datatype from config" );
-            // TODO: document.put( "datatype", _config.datatypes.toArray( new String[0] ) );
-        }
-
-        if (partner != null) {
-            document.put( "partner", partner.split( "," ) );
-        } else {
-            document.put( "partner", _config.partner );
-        }
-
-        if (provider != null) {
-            document.put( "provider", provider.split( "," ) );
-        } else {
-            document.put( "provider", _config.provider );
-        }
     }
 
     @Override
