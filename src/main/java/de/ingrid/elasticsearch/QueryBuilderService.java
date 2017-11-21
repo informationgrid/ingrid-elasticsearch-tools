@@ -17,15 +17,14 @@ public class QueryBuilderService {
 
     private static Logger log = LogManager.getLogger( QueryBuilderService.class );
 
-    public BoolQueryBuilder createIndexTypeFilter(String[] activeIndices) {
+    public BoolQueryBuilder createIndexTypeFilter(IndexInfo[] activeIndices) {
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         BoolQueryBuilder boolShould = QueryBuilders.boolQuery();
         List<QueryBuilder> should = boolShould.should();
 
-        for (String indexTypes : activeIndices) {
-            String[] indexSplitType = indexTypes.split( ":" );
-            should.add( buildIndexTypeMust( indexSplitType[0], indexSplitType[1] ) );
+        for (IndexInfo activeIndex : activeIndices) {
+            should.add( buildIndexTypeMust( activeIndex.getRealIndexName(), activeIndex.getToType() ) );
         }
 
         boolQuery.filter().add( boolShould );

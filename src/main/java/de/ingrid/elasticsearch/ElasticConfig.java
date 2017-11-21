@@ -65,9 +65,11 @@ public class ElasticConfig {
     @Value("${index.fields.exclude:}")
     public String indexFieldsExcluded;
 
-    public String[] docProducerIndices;
+    // public String[] docProducerIndices;
 
     @Value("${elastic.communication.ibus:false}")
     public boolean esCommunicationThroughIBus;
+
+    public IndexInfo[] activeIndices;
 
 }

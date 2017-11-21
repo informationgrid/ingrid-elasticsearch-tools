@@ -48,6 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import de.ingrid.elasticsearch.ElasticConfig;
+import de.ingrid.elasticsearch.IndexInfo;
 import de.ingrid.elasticsearch.IndexManager;
 import de.ingrid.elasticsearch.QueryBuilderService;
 import de.ingrid.elasticsearch.search.converter.QueryConverter;
@@ -141,9 +142,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             // the necessary value id the results ID
         }
 
-        String[] indexNames = this.config.docProducerIndices;
+        IndexInfo[] indexInfos = this.config.activeIndices;
         
-        if (indexNames.length == 0) {
+        if (indexInfos.length == 0) {
             log.warn( "No configured index to search on!" );
             return new IngridHits( 0, new IngridHit[0] );
         }
@@ -151,16 +152,18 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         // if we are remotely connected to an elasticsearch node then get the real indices of the aliases
         // otherwise we also get the results from other indices, since an alias can contain several indices!
         List<String> realIndices = new ArrayList<String>();
-        for (int i=0; i < indexNames.length; i++) {
-            String[] indexNameAlias = indexNames[i].split( ":" );
-            String realIndex = indexManager.getIndexNameFromAliasName( indexNameAlias[0], indexNameAlias[1] );
+        for (IndexInfo indexInfo : indexInfos) {
+            String realIndex = indexManager.getIndexNameFromAliasName( 
+                    indexInfo.getToAlias(), 
+                    indexInfo.getRealIndexName() == null ? indexInfo.getToAlias() : indexInfo.getRealIndexName() );
+            
             if (realIndex != null) {
                 realIndices.add( realIndex );
             }
         }
         String[] realIndexNames = realIndices.toArray( new String[0] );
         
-        BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexNames );
+        BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexInfos );
         
         // search prepare
         SearchRequestBuilder srb = indexManager.getClient().prepareSearch( realIndexNames  )
@@ -214,7 +217,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
             return hits;
         } catch (SearchPhaseExecutionException ex) {
-            log.error( "Search failed on index: " + indexNames, ex );
+            log.error( "Search failed on index: " + indexInfos, ex );
             return new IngridHits( 0, new IngridHit[0] );
         }
     }
@@ -434,11 +437,10 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     public ElasticDocument getDocById(Object id) {
         String idAsString = String.valueOf( id );
-        String[] indexNames = this.config.docProducerIndices;
-        // itereate over all indices until document was found
-        for (String indexName : indexNames) {
-            String[] aliasInfo = indexName.split( ":" );
-            Map<String, Object> source = indexManager.getClient().prepareGet( aliasInfo[0], null, idAsString )
+        IndexInfo[] indexNames = this.config.activeIndices;
+        // iterate over all indices until document was found
+        for (IndexInfo indexName : indexNames) {
+            Map<String, Object> source = indexManager.getClient().prepareGet( indexName.getToAlias(), null, idAsString )
                     .setFetchSource( config.indexFieldsIncluded, config.indexFieldsExcluded )
                     .execute().actionGet().getSource();
             
