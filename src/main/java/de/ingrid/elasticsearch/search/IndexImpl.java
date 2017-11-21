@@ -332,7 +332,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
         
         HighlightBuilder hb = new HighlightBuilder();
-        hb.field("config.indexFieldSummary");
+        hb.field(config.indexFieldSummary);
 
         // search prepare
         SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex ).setTypes( fromType )

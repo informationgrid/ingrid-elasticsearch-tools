@@ -1,9 +1,12 @@
 package de.ingrid.elasticsearch;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.log4j.Logger;
@@ -17,6 +20,7 @@ import de.ingrid.utils.IConfigurable;
 import de.ingrid.utils.IngridCall;
 import de.ingrid.utils.IngridDocument;
 import de.ingrid.utils.PlugDescription;
+import de.ingrid.utils.xml.XMLSerializer;
 
 @Service
 public class IBusIndexManager implements IConfigurable, IIndexManager {
@@ -66,7 +70,17 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     public boolean createIndex(String name) {
         
         IngridCall call = prepareCall( "createIndex" );
-        call.setParameter( name );
+        Map<String,String> map = new HashMap<String, String>();
+        InputStream mappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
+        map.put( "name", name );
+        try {
+            map.put( "mapping", XMLSerializer.getContents( mappingStream ) );
+        } catch (IOException e1) {
+            log.error( "Error converting stream to string", e1 );
+            return false;
+        }
+        
+        call.setParameter( map );
         
         try {
             IngridDocument response = getIBus().call( call );

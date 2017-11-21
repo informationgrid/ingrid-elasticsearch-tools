@@ -33,13 +33,13 @@ public class ElasticConfig {
     @Value("${elastic.boostMode:}")
     public String boostMode;
 
-    @Value("${elastic.indexFieldTitle:}")
+    @Value("${index.field.title:}")
     public String indexFieldTitle;
 
-    @Value("${elastic.additionalSearchDetailFields:}")
+    @Value("${index.search.additional.detail.fields:}")
     public String[] additionalSearchDetailFields;
 
-    @Value("${elastic.indexFieldSummary:}")
+    @Value("${index.field.summary:}")
     public String indexFieldSummary;
 
     
