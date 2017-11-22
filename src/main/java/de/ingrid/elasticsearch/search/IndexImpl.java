@@ -102,7 +102,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                         config.indexFieldSummary, 
                         PlugDescription.PARTNER, 
                         PlugDescription.PROVIDER, 
-                        PlugDescription.DATA_TYPE, 
+                        "datatype", 
                         PlugDescription.DATA_SOURCE_NAME } ),
                 Arrays.stream( config.additionalSearchDetailFields ) )
             .toArray(String[]::new);
@@ -376,9 +376,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
 
         detail.setDataSourceName( dHit.getField( PlugDescription.DATA_SOURCE_NAME ).getValue().toString() );
-        detail.setArray( "datatype", dHit.getField( "datatype" ).getValues().toArray(new String[0]) );
-        detail.setArray( PlugDescription.PARTNER, dHit.getField( PlugDescription.PARTNER ).getValues().toArray(new String[0]) );
-        detail.setArray( PlugDescription.PROVIDER, dHit.getField( PlugDescription.PROVIDER ).getValues().toArray(new String[0]) );
+        detail.setArray( "datatype", getStringArrayFromSearchHit( dHit, "datatype" ) );
+        detail.setArray( PlugDescription.PARTNER, getStringArrayFromSearchHit( dHit, PlugDescription.PARTNER ) );
+        detail.setArray( PlugDescription.PROVIDER, getStringArrayFromSearchHit( dHit, PlugDescription.PROVIDER ) );
 
         detail.setDocumentId( documentId );
         if (requestedFields != null) {
@@ -412,6 +412,16 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
 
         return detail;
+    }
+
+    private String[] getStringArrayFromSearchHit(SearchHit hit, String field) {
+        SearchHitField fieldObj = hit.getField( field );
+        if (fieldObj == null) {
+            log.warn( "SearchHit does not contain field: " + field );
+            return new String[0];
+        }
+        
+        return fieldObj.getValues().toArray(new String[0]);
     }
 
     @Override
