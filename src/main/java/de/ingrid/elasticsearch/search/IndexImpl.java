@@ -36,6 +36,7 @@ import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.common.text.Text;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -451,12 +452,16 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         IndexInfo[] indexNames = this.config.activeIndices;
         // iterate over all indices until document was found
         for (IndexInfo indexName : indexNames) {
-            Map<String, Object> source = indexManager.getClient().prepareGet( indexName.getToAlias(), null, idAsString )
-                    .setFetchSource( config.indexFieldsIncluded, config.indexFieldsExcluded )
-                    .execute().actionGet().getSource();
-            
-            if (source != null) {
-                return new ElasticDocument( source );
+            try {
+                Map<String, Object> source = indexManager.getClient().prepareGet( indexName.getToAlias(), null, idAsString )
+                        .setFetchSource( config.indexFieldsIncluded, config.indexFieldsExcluded )
+                        .execute().actionGet().getSource();
+                
+                if (source != null) {
+                    return new ElasticDocument( source );
+                }
+            } catch(IndexNotFoundException ex) {
+                log.warn( "Index was not found. We probably have to clean up or refresh the active indices here. Missing index is: " + indexName.getToAlias() );
             }
         }
 
