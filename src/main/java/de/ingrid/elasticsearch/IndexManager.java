@@ -388,11 +388,11 @@ public class IndexManager implements IIndexManager {
     }
 
     @Override
-    public void updateHearbeatInformation(List<String> iPlugIds) throws InterruptedException, ExecutionException, IOException {
-        for (String id : iPlugIds) {
+    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException {
+    	checkAndCreateInformationIndex();
+        for (String id : iPlugIdInfos.keySet()) {
             try {
-                checkAndCreateInformationIndex();
-                updateIPlugInformation(id, getHearbeatInfo(id));
+                updateIPlugInformation(id, iPlugIdInfos.get(id));
             } catch (IndexNotFoundException ex) {
                 log.warn( "Index for iPlug information not found ... creating: " + id );
             }
@@ -433,13 +433,4 @@ public class IndexManager implements IIndexManager {
         }
     }
     
-    private String getHearbeatInfo(String id) throws IOException {
-        return XContentFactory.jsonBuilder().startObject()
-                .field( "plugId", _config.communicationProxyUrl )
-                .field( "indexId", id )
-                .field( "lastHeartbeat", new Date() )
-                .endObject()
-                .string();
-    }
-
 }

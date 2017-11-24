@@ -3,7 +3,6 @@ package de.ingrid.elasticsearch;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -218,9 +217,9 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public void updateHearbeatInformation(List<String> iPlugIds) throws InterruptedException, ExecutionException, IOException {
+    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException {
         IngridCall call = prepareCall( "updateHearbeatInformation" );
-        call.setParameter(iPlugIds);
+        call.setParameter(iPlugIdInfos);
         
         try {
             getIBus().call( call );

@@ -34,5 +34,5 @@ public interface IIndexManager {
     
     public Map<String, Object> getMapping(IndexInfo indexInfo);
     
-    public void updateHearbeatInformation(List<String> iPlugIds) throws InterruptedException, ExecutionException, IOException;
+    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
 }
