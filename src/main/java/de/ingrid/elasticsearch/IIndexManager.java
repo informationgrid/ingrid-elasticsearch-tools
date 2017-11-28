@@ -1,12 +1,8 @@
 package de.ingrid.elasticsearch;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import de.ingrid.utils.ElasticDocument;
 
@@ -35,4 +31,6 @@ public interface IIndexManager {
     public Map<String, Object> getMapping(IndexInfo indexInfo);
     
     public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
+    
+    public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);
 }

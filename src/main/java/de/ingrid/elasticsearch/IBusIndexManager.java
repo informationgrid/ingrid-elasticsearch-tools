@@ -241,4 +241,9 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         return call;
     }
 
+	@Override
+	public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex) {
+		log.error("Operation 'delete' not implemented yet!");
+	}
+
 }
