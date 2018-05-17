@@ -22,15 +22,15 @@
   <repositories>
     <!-- Repo of parent pom needed, parent pom may not be installed locally yet -->
     <repository>
-      <id>de.ingrid.all</id>
-      <name>Maven Repo InGrid</name>
-      <url>https://dev.informationgrid.eu/archiva/repository/ingrid-all</url>
+      <id>nexus</id>
+      <name>Nexus Repo</name>
+      <url>https://nexus.informationgrid.eu/repository/maven-public</url>
     </repository>
   </repositories>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <elastic.version>5.5.1</elastic.version>
+    <elastic.version>6.2.4</elastic.version>
     <spring.version>4.3.11.RELEASE</spring.version>
   </properties>
 
@@ -53,6 +53,16 @@
         <artifactId>transport</artifactId>
         <version>${elastic.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.elasticsearch.plugin</groupId>
+      <artifactId>transport-netty4-client</artifactId>
+      <version>${elastic.version}</version>
+    </dependency>
+    <!--<dependency>
+        <groupId>org.elasticsearch.client</groupId>
+        <artifactId>elasticsearch-rest-high-level-client</artifactId>
+        <version>${elastic.version}</version>
+    </dependency>-->
     
     <!-- Spring -->
     <dependency>

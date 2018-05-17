@@ -22,16 +22,9 @@
  */
 package de.ingrid.elasticsearch;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import de.ingrid.utils.ElasticDocument;
+import de.ingrid.utils.xml.XMLSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
@@ -59,10 +52,11 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
-import de.ingrid.utils.ElasticDocument;
-import de.ingrid.utils.xml.XMLSerializer;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Utility class to manage elasticsearch indices and documents.
@@ -302,12 +296,7 @@ public class IndexManager implements IIndexManager {
         if (mappingMetaData == null) {
             return null;
         } else {
-            try {
-                return mappingMetaData.getSourceAsMap();
-            } catch (IOException e) {
-                log.error( "Error getting source as map from mappingMetaData", e );
-                return null;
-            }
+            return mappingMetaData.getSourceAsMap();
         }
     }
 

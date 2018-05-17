@@ -91,7 +91,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     @Override
     public boolean createIndex(String name, String type, String source) {
         IngridCall call = prepareCall( "createIndex" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         map.put( "name", name );
         map.put( "type", type );
         map.put( "source", source );
@@ -150,7 +150,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     @Override
     public void update(IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex) {
         IngridCall call = prepareCall( "update" );
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put( "indexinfo", indexinfo );
         map.put( "doc", doc );
         map.put( "updateOldIndex", updateOldIndex );
@@ -166,7 +166,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     @Override
     public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
         IngridCall call = prepareCall( "updateIPlugInformation" );
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put( "id", id );
         map.put( "info", info );
         call.setParameter( map );
@@ -231,7 +231,6 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     /**
      * Simplify creation of IngridCall object.
      * @param method
-     * @param paramsAsMap
      * @return
      */
     private IngridCall prepareCall(String method) {

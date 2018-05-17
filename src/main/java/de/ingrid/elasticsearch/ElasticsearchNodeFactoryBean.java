@@ -22,23 +22,14 @@
  */
 package de.ingrid.elasticsearch;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
@@ -48,6 +39,14 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
 /**
  * A {@link FactoryBean} implementation used to create a {@link Node} element which is an embedded instance of the cluster within a running
  * application.
@@ -55,7 +54,7 @@ import org.springframework.stereotype.Service;
  * This factory allows for defining custom configuration via the {@link #setConfigLocation(Resource)} or {@link #setConfigLocations(List)}
  * property setters.
  * <p>
- * <b>Note</b>: multiple configurations can be "accumulated" since {@link Builder#loadFromStream(String, java.io.InputStream)} doesn't
+ * <b>Note</b>: multiple configurations can be "accumulated" since {@link Builder#loadFromStream(String, InputStream, boolean)} doesn't
  * replace but adds to the map (this also means that loading order of configuration files matters).
  * <p>
  * In addition Spring's property mechanism can be used via {@link #setSettings(Map)} property setter which allows for local settings to be
@@ -83,7 +82,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     private Node node = null;
 
-    private Client client = null;
+    private TransportClient client = null;
 
     private Properties properties;
 
@@ -123,10 +122,10 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             } else if (config.isRemote) {
                 log.debug( "Elasticsearch: creating transport client" );
                 createTransportClient( config.remoteHosts );
-                
+
             } else {
-                log.debug( "Elasticsearch: creating node" );
-                internalCreateNode();
+                log.error( "You cannot create an internal Elasticsearch cluster anymore!" );
+                System.exit(1);
             }
         } else {
             log.warn( "Since Indexing is not enabled, this component should not have Elastic Search enabled at all! This bean should be excluded in the spring configuration." );
@@ -134,25 +133,49 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
     }
 
     public Client getClient() {
-        return config.isRemote ? client : node.client();
+        return client;
     }
 
     private void createTransportClient(String[] esRemoteHosts) throws UnknownHostException {
-        TransportClient transportClient = null;
 
-        Properties props = getPropertiesFromElasticsearch();
-        if (props != null) {
-            transportClient = new PreBuiltTransportClient( Settings.builder().put( props ).build() );
-        } else {
-            transportClient = new PreBuiltTransportClient( Settings.EMPTY );
-        }
+        /**
+         * The following commented code will be used for the new Client in Elasticsearch 7!?
+         */
 
+        /*RestHighLevelClient transportClient = null;
+
+        List<HttpHost> addresses = new ArrayList<>();
         for (String host : esRemoteHosts) {
             String[] splittedHost = host.split( ":" );
-            transportClient.addTransportAddress( new InetSocketTransportAddress( InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
+            addresses.add(new HttpHost(splittedHost[0], Integer.valueOf(splittedHost[1]), "http"));
+        }
+
+        transportClient = new RestHighLevelClient(RestClient.builder(addresses.toArray(new HttpHost[0])));*/
+
+        /*Properties props = getPropertiesFromElasticsearch();
+        if (props != null) {
+            transportClient = new RestHighLevelClient( Settings.builder().putProperties( props ).build() );
+        } else {
+        }*/
+
+        Builder builder = getConfiguredBuilder();
+
+        PreBuiltTransportClient transportClient = new PreBuiltTransportClient(builder.build());
+        for (String host : esRemoteHosts) {
+            String[] splittedHost = host.split( ":" );
+            transportClient.addTransportAddress( new TransportAddress(  InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
         }
 
         client = transportClient;
+    }
+
+    private Builder getConfiguredBuilder() {
+        Properties props = getPropertiesFromElasticsearch();
+        Builder builder = Settings.builder();
+        for (String key : props.stringPropertyNames()) {
+            builder.put(key, props.getProperty(key));
+        }
+        return builder;
     }
 
     private Properties getPropertiesFromElasticsearch() {
@@ -170,82 +193,6 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         } catch (IOException e) {
             e.printStackTrace();
             return null;
-        }
-    }
-
-    private void internalCreateNode() throws NodeValidationException {
-
-        Node nodeBuilder = null;
-
-        // set inital configurations coming from the property file
-        try {
-            ClassPathResource resource = new ClassPathResource( "/elasticsearch.properties" );
-            if (resource.exists()) {
-                Properties p = new Properties();
-                p.load( resource.getInputStream() );
-
-                Settings settingsFile = Settings.builder().put( p ).build();
-                nodeBuilder = new Node( settingsFile );
-                ClassPathResource resourceOverride = new ClassPathResource( "/elasticsearch.override.properties" );
-                if (resourceOverride.exists()) {
-                    p.load( resourceOverride.getInputStream() );
-                    // TODO: nodeBuilder.settings().put( p );
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // other possibilities for configuration
-        // TODO: remove those not needed!
-        if (null != configLocation) {
-            internalLoadSettings( nodeBuilder, configLocation );
-        }
-
-        if (null != configLocations) {
-            for (final Resource location : configLocations) {
-                internalLoadSettings( nodeBuilder, location );
-            }
-        }
-
-        if (null != settings) {
-            nodeBuilder = new Node( Settings.builder().put( settings ).build() );
-        }
-        if (null != properties) {
-            // TODO: nodeBuilder = new Node(Settings.builder().put( properties );
-        }
-
-        Node localNode = nodeBuilder.start();
-
-        ClassPathResource indexResource = new ClassPathResource( "/index.properties" );
-        if (indexResource.exists()) {
-            Properties p = new Properties();
-            try {
-                p.load( indexResource.getInputStream() );
-                Settings indexSettings = Settings.builder().put( p ).build();
-                localNode.client().admin().indices().putTemplate(
-                        new PutIndexTemplateRequest( "ingrid_template" ).settings( indexSettings ) );
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        localNode.client().admin().cluster().prepareHealth().setWaitForYellowStatus().execute().actionGet();
-        node = localNode;
-    }
-
-    private void internalLoadSettings(final Node nodeBuilder,
-            final Resource configLocation) {
-
-        try {
-            final String filename = configLocation.getFilename();
-            if (log.isInfoEnabled()) {
-                log.info( "Loading configuration file from: " + filename );
-            }
-        } catch (final Exception e) {
-            throw new IllegalArgumentException( "Could not load settings from configLocation: " +
-                    configLocation.getDescription(),
-                    e );
         }
     }
 

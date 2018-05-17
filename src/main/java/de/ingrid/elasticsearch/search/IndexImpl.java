@@ -22,6 +22,33 @@
  */
 package de.ingrid.elasticsearch.search;
 
+import de.ingrid.elasticsearch.ElasticConfig;
+import de.ingrid.elasticsearch.IndexInfo;
+import de.ingrid.elasticsearch.IndexManager;
+import de.ingrid.elasticsearch.QueryBuilderService;
+import de.ingrid.elasticsearch.search.converter.QueryConverter;
+import de.ingrid.utils.*;
+import de.ingrid.utils.dsc.Column;
+import de.ingrid.utils.dsc.Record;
+import de.ingrid.utils.query.IngridQuery;
+import org.apache.log4j.Logger;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.ShardSearchFailure;
+import org.elasticsearch.common.document.DocumentField;
+import org.elasticsearch.common.text.Text;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
+import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -29,42 +56,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
-import org.apache.log4j.Logger;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.ShardSearchFailure;
-import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHitField;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import de.ingrid.elasticsearch.ElasticConfig;
-import de.ingrid.elasticsearch.IndexInfo;
-import de.ingrid.elasticsearch.IndexManager;
-import de.ingrid.elasticsearch.QueryBuilderService;
-import de.ingrid.elasticsearch.search.converter.QueryConverter;
-import de.ingrid.utils.ElasticDocument;
-import de.ingrid.utils.IDetailer;
-import de.ingrid.utils.IRecordLoader;
-import de.ingrid.utils.ISearcher;
-import de.ingrid.utils.IngridDocument;
-import de.ingrid.utils.IngridHit;
-import de.ingrid.utils.IngridHitDetail;
-import de.ingrid.utils.IngridHits;
-import de.ingrid.utils.PlugDescription;
-import de.ingrid.utils.dsc.Column;
-import de.ingrid.utils.dsc.Record;
-import de.ingrid.utils.query.IngridQuery;
 
 @Component
 public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
@@ -295,12 +286,12 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             // get grouing information, add if exist
             String groupValue = null;
             if (IngridQuery.GROUPED_BY_PARTNER.equalsIgnoreCase( groupBy )) {
-                SearchHitField field = hit.getField( IngridQuery.PARTNER );
+                DocumentField field = hit.field(IngridQuery.PARTNER);
                 if (field != null) {
                     groupValue = field.getValue().toString();
                 }
             } else if (IngridQuery.GROUPED_BY_ORGANISATION.equalsIgnoreCase( groupBy )) {
-                SearchHitField field = hit.getField( IngridQuery.PROVIDER );
+                DocumentField field = hit.field( IngridQuery.PROVIDER );
                 if (field != null) {
                     groupValue = field.getValue().toString();
                 }
@@ -358,8 +349,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         SearchHit dHit = dHits.getAt( 0 );
 
         String title = "untitled";
-        if (dHit.getField( config.indexFieldTitle ) != null) {
-            title = (String) dHit.getField( config.indexFieldTitle ).getValue();
+        if (dHit.field( config.indexFieldTitle ) != null) {
+            title = (String) dHit.field( config.indexFieldTitle ).getValue();
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
@@ -370,13 +361,13 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             }
             summary = String.join( " ... ", stringFragments );
             // otherwise get it from the original field
-        } else if (dHit.getField( config.indexFieldSummary ) != null) {
-            summary = (String) dHit.getField( config.indexFieldSummary ).getValue();
+        } else if (dHit.field( config.indexFieldSummary ) != null) {
+            summary = (String) dHit.field( config.indexFieldSummary ).getValue();
         }
 
         IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
 
-        detail.setDataSourceName( dHit.getField( PlugDescription.DATA_SOURCE_NAME ).getValue().toString() );
+        detail.setDataSourceName( dHit.field( PlugDescription.DATA_SOURCE_NAME ).getValue().toString() );
         detail.setArray( "datatype", getStringArrayFromSearchHit( dHit, "datatype" ) );
         detail.setArray( PlugDescription.PARTNER, getStringArrayFromSearchHit( dHit, PlugDescription.PARTNER ) );
         detail.setArray( PlugDescription.PROVIDER, getStringArrayFromSearchHit( dHit, PlugDescription.PROVIDER ) );
@@ -384,21 +375,21 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         detail.setDocumentId( documentId );
         if (requestedFields != null) {
             for (String field : requestedFields) {
-                if (dHit.getField( field ) != null) {
-                    if (dHit.getField( field ).getValues() instanceof List){
-                        if(dHit.getField( field ).getValues().size() > 1){
-                            detail.put( field, dHit.getField( field ).getValues());
+                if (dHit.field( field ) != null) {
+                    if (dHit.field( field ).getValues() instanceof List){
+                        if(dHit.field( field ).getValues().size() > 1){
+                            detail.put( field, dHit.field( field ).getValues());
                         }else{
-                            if (dHit.getField( field ).getValue() instanceof String) {
-                                detail.put( field, new String[] { dHit.getField( field ).getValue() } );
+                            if (dHit.field( field ).getValue() instanceof String) {
+                                detail.put( field, new String[] { dHit.field( field ).getValue() } );
                             } else {
-                                detail.put( field, dHit.getField( field ).getValue() );
+                                detail.put( field, dHit.field( field ).getValue() );
                             }
                         }
-                    } else if (dHit.getField( field ).getValue() instanceof String) {
-                        detail.put( field, new String[] { dHit.getField( field ).getValue() } );
+                    } else if (dHit.field( field ).getValue() instanceof String) {
+                        detail.put( field, new String[] { dHit.field( field ).getValue() } );
                     } else {
-                        detail.put( field, dHit.getField( field ).getValue() );
+                        detail.put( field, dHit.field( field ).getValue() );
                     }
                 }
             }
@@ -406,7 +397,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         // add additional fields to detail object (such as url for iPlugSE)
         for (String extraDetail : config.additionalSearchDetailFields) {
-            SearchHitField field = dHit.getFields().get( extraDetail );
+            DocumentField field = dHit.getFields().get( extraDetail );
             if (field != null) {
                 detail.put( extraDetail, field.getValue() );
             }
@@ -416,7 +407,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     }
 
     private String[] getStringArrayFromSearchHit(SearchHit hit, String field) {
-        SearchHitField fieldObj = hit.getField( field );
+        DocumentField fieldObj = hit.field( field );
         if (fieldObj == null) {
             log.warn( "SearchHit does not contain field: " + field );
             return new String[0];
