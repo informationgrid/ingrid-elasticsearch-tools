@@ -86,16 +86,6 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     private Properties properties;
 
-    private boolean isClient = false;
-
-    public boolean isClient() {
-        return isClient;
-    }
-
-    public void setClient(boolean isClient) {
-        this.isClient = isClient;
-    }
-
     public void setConfigLocation(final Resource configLocation) {
         this.configLocation = configLocation;
     }
@@ -110,7 +100,6 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     public void setProperties(Properties props) {
         this.properties = props;
-
     }
 
     public void afterPropertiesSet() throws Exception {
@@ -136,7 +125,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         return client;
     }
 
-    private void createTransportClient(String[] esRemoteHosts) throws UnknownHostException {
+    public void createTransportClient(String[] esRemoteHosts) throws UnknownHostException {
 
         /**
          * The following commented code will be used for the new Client in Elasticsearch 7!?
@@ -158,15 +147,24 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         } else {
         }*/
 
-        Builder builder = getConfiguredBuilder();
+        if (this.client == null) {
 
-        PreBuiltTransportClient transportClient = new PreBuiltTransportClient(builder.build());
-        for (String host : esRemoteHosts) {
-            String[] splittedHost = host.split( ":" );
-            transportClient.addTransportAddress( new TransportAddress(  InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
+            Builder builder = getConfiguredBuilder();
+            PreBuiltTransportClient transportClient = new PreBuiltTransportClient(builder.build());
+
+            client = transportClient;
+
+        } else {
+            for (TransportAddress addr : this.client.transportAddresses()) {
+                this.client.removeTransportAddress(addr);
+            }
         }
 
-        client = transportClient;
+        for (String host : esRemoteHosts) {
+            String[] splittedHost = host.split( ":" );
+            this.client.addTransportAddress( new TransportAddress(  InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
+        }
+
     }
 
     private Builder getConfiguredBuilder() {
@@ -196,7 +194,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         }
     }
 
-    public void destroy() throws Exception {
+    public void destroy() {
         try {
             if (client != null)
                 client.close();
