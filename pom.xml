@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>de.ingrid</groupId>
     <artifactId>ingrid-base-pom</artifactId>
@@ -8,7 +7,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>ingrid-elasticsearch-tools</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>4.4.0</version>
   <packaging>jar</packaging>
 
   <name>InGrid Elasticsearch Tools</name>
@@ -91,9 +90,14 @@
         <artifactId>jgitflow-maven-plugin</artifactId>
         <version>1.0-m5.1</version>
         <configuration>
-          <defaultOriginUrl>https://github.com/informationgrid/ingrid-elasticsearch-utils</defaultOriginUrl>
+          <defaultOriginUrl>https://github.com/informationgrid/ingrid-elasticsearch-tools</defaultOriginUrl>
           <noDeploy>true</noDeploy>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>1.16</version>
       </plugin>
     </plugins>
   </build>
