@@ -81,7 +81,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private IndexManager indexManager;
 
-    public List<String> indexSearchInTypes = new ArrayList<String>();
+    public List<String> indexSearchInTypes = new ArrayList<>();
 
     @Autowired
     public IndexImpl(ElasticConfig config, IndexManager indexManager, QueryConverter qc, FacetConverter fc) {
@@ -138,9 +138,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             fields = new String[] { IngridQuery.PARTNER };
         } else if (IngridQuery.GROUPED_BY_ORGANISATION.equalsIgnoreCase( groupedBy )) {
             fields = new String[] { IngridQuery.PROVIDER };
-        } else if (IngridQuery.GROUPED_BY_DATASOURCE.equalsIgnoreCase( groupedBy )) {
+        }/* else if (IngridQuery.GROUPED_BY_DATASOURCE.equalsIgnoreCase( groupedBy )) {
             // the necessary value id the results ID
-        }
+        }*/
 
         IndexInfo[] indexInfos = this.config.activeIndices;
         
@@ -151,7 +151,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         
         // if we are remotely connected to an elasticsearch node then get the real indices of the aliases
         // otherwise we also get the results from other indices, since an alias can contain several indices!
-        List<String> realIndices = new ArrayList<String>();
+        List<String> realIndices = new ArrayList<>();
         for (IndexInfo indexInfo : indexInfos) {
             String realIndex = indexManager.getIndexNameFromAliasName( 
                     indexInfo.getToAlias(), 
@@ -268,7 +268,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         // the size will not be bigger than it was requested in the query with
         // 'num'
         // so we can convert from long to int here!
-        int length = (int) hits.getHits().length;
+        int length = hits.getHits().length;
         int totalHits = (int) hits.getTotalHits();
         IngridHit[] hitArray = new IngridHit[length];
         int pos = 0;
@@ -313,9 +313,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             pos++;
         }
 
-        IngridHits ingridHits = new IngridHits( totalHits, hitArray );
-
-        return ingridHits;
+        return new IngridHits( totalHits, hitArray );
     }
 
     @Override
@@ -331,15 +329,13 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         // We have to search here again, to get a highlighted summary of the result!
         QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
         
-        HighlightBuilder hb = new HighlightBuilder();
-        hb.field(config.indexFieldSummary);
-
         // search prepare
         SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex ).setTypes( fromType )
+                .setFetchSource(true)
                 .setQuery( query ) // Query
                 .setFrom( 0 )
                 .setSize( 1 )
-                .highlighter( hb )
+                .highlighter( new HighlightBuilder().field(config.indexFieldSummary) )
                 .storedFields( allFields )
                 .setExplain( false );
 
@@ -350,19 +346,19 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         String title = "untitled";
         if (dHit.field( config.indexFieldTitle ) != null) {
-            title = (String) dHit.field( config.indexFieldTitle ).getValue();
+            title = dHit.field( config.indexFieldTitle ).getValue();
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
         if (dHit.getHighlightFields().containsKey( config.indexFieldSummary )) {
-            List<String> stringFragments = new ArrayList<String>();
+            List<String> stringFragments = new ArrayList<>();
             for (Text fragment : dHit.getHighlightFields().get( config.indexFieldSummary ).fragments()) {
                 stringFragments.add( fragment.toString() );
             }
             summary = String.join( " ... ", stringFragments );
             // otherwise get it from the original field
         } else if (dHit.field( config.indexFieldSummary ) != null) {
-            summary = (String) dHit.field( config.indexFieldSummary ).getValue();
+            summary = dHit.field( config.indexFieldSummary ).getValue();
         }
 
         IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
@@ -373,24 +369,22 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         detail.setArray( PlugDescription.PROVIDER, getStringArrayFromSearchHit( dHit, PlugDescription.PROVIDER ) );
 
         detail.setDocumentId( documentId );
-        if (requestedFields != null) {
-            for (String field : requestedFields) {
-                if (dHit.field( field ) != null) {
-                    if (dHit.field( field ).getValues() instanceof List){
-                        if(dHit.field( field ).getValues().size() > 1){
-                            detail.put( field, dHit.field( field ).getValues());
-                        }else{
-                            if (dHit.field( field ).getValue() instanceof String) {
-                                detail.put( field, new String[] { dHit.field( field ).getValue() } );
-                            } else {
-                                detail.put( field, dHit.field( field ).getValue() );
-                            }
+        for (String field : requestedFields) {
+            if (dHit.field( field ) != null) {
+                if (dHit.field(field).getValues() != null){
+                    if(dHit.field( field ).getValues().size() > 1){
+                        detail.put( field, dHit.field( field ).getValues());
+                    }else{
+                        if (dHit.field( field ).getValue() instanceof String) {
+                            detail.put( field, new String[] { dHit.field( field ).getValue() } );
+                        } else {
+                            detail.put( field, dHit.field( field ).getValue() );
                         }
-                    } else if (dHit.field( field ).getValue() instanceof String) {
-                        detail.put( field, new String[] { dHit.field( field ).getValue() } );
-                    } else {
-                        detail.put( field, dHit.field( field ).getValue() );
                     }
+                } else if (dHit.field( field ).getValue() instanceof String) {
+                    detail.put( field, new String[] { dHit.field( field ).getValue() } );
+                } else {
+                    detail.put( field, dHit.field( field ).getValue() );
                 }
             }
         }
@@ -421,7 +415,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         for (int i = 0; i < requestedFields.length; i++) {
             requestedFields[i] = requestedFields[i].toLowerCase();
         }
-        List<IngridHitDetail> details = new ArrayList<IngridHitDetail>();
+        List<IngridHitDetail> details = new ArrayList<>();
         for (IngridHit hit : hits) {
             details.add( getDetail( hit, ingridQuery, requestedFields ) );
         }
@@ -461,7 +455,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Record getRecord(IngridHit hit) throws Exception {
+    public Record getRecord(IngridHit hit) {
         String documentId = hit.getDocumentId();
         ElasticDocument document = getDocById( documentId );
         String[] fields = document.keySet().toArray( new String[0] );

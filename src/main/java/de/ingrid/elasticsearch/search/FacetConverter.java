@@ -54,7 +54,7 @@ public class FacetConverter {
     private static Log log = LogFactory.getLog( FacetConverter.class );
     
     @Autowired(required=false)
-    private List<IFacetDefinitionProcessor> facetDefinitionProcessors = new ArrayList<IFacetDefinitionProcessor>();
+    private List<IFacetDefinitionProcessor> facetDefinitionProcessors = new ArrayList<>();
 
     private QueryConverter queryConverter;
     
@@ -73,7 +73,7 @@ public class FacetConverter {
             facetdefProcessor.process(defs);
         }
         
-        List<AbstractAggregationBuilder> aggregations = new ArrayList<AbstractAggregationBuilder>();
+        List<AbstractAggregationBuilder> aggregations = new ArrayList<>();
         
         for (FacetDefinition facetDefinition : defs) {
             String name = facetDefinition.getName();

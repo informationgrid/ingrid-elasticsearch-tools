@@ -27,8 +27,10 @@ import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.xml.XMLSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesResponse;
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -76,15 +78,15 @@ public class IndexManager implements IIndexManager {
     private Map<String, String> iPlugDocIdMap;
     
     @Autowired
-    public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) throws Exception {
+    public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
 
         // do not initialize when using central index
         if (config.esCommunicationThroughIBus) return;
         
         _config = config;
         _client = elastic.getClient();
-        _bulkProcessor = BulkProcessor.builder( _client, getBulkProcessorListener() ).setFlushInterval( TimeValue.timeValueSeconds( 5l ) ).build();
-        iPlugDocIdMap = new HashMap<String, String>();
+        _bulkProcessor = BulkProcessor.builder( _client, getBulkProcessorListener() ).setFlushInterval( TimeValue.timeValueSeconds(5L) ).build();
+        iPlugDocIdMap = new HashMap<>();
     }
 
     /**
@@ -112,7 +114,7 @@ public class IndexManager implements IIndexManager {
             String oldIndex = getIndexNameFromAliasName( indexinfo.getToIndex(), null );
             // if the current index differs from the real index, then it means there's an indexing going on
             // and if the real index name is the same as the index alias, it means that no complete indexing happened yet
-            if (!oldIndex.equals( indexinfo.getRealIndexName() ) && (!indexinfo.getToIndex().equals( indexinfo.getRealIndexName() ))) {
+            if ((oldIndex != null) && !oldIndex.equals( indexinfo.getRealIndexName() ) && (!indexinfo.getToIndex().equals( indexinfo.getRealIndexName() ))) {
                 IndexInfo otherIndexInfo = indexinfo.clone();
                 otherIndexInfo.setRealIndexName( oldIndex );
                 update( otherIndexInfo, doc, false );
@@ -270,7 +272,7 @@ public class IndexManager implements IIndexManager {
             int count = 0;
             while (iterator.hasNext()) {
                 String next = iterator.next().value;
-                if (partialName == null || next.indexOf( partialName ) != -1) {
+                if (partialName == null || next.contains(partialName)) {
                     result = next;
                     count++;
                 }
@@ -351,7 +353,7 @@ public class IndexManager implements IIndexManager {
                     .setSize( 1 )
                     .get();
 
-            long totalHits = response.getHits().totalHits;
+            long totalHits = response.getHits().getTotalHits();
 
             // do update document
             if (totalHits == 1) {
@@ -377,7 +379,7 @@ public class IndexManager implements IIndexManager {
     }
 
     @Override
-    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException {
+    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException {
     	checkAndCreateInformationIndex();
         for (String id : iPlugIdInfos.keySet()) {
             try {

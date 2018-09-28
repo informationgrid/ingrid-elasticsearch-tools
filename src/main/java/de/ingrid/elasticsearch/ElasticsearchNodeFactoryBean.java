@@ -54,9 +54,6 @@ import java.util.Properties;
  * This factory allows for defining custom configuration via the {@link #setConfigLocation(Resource)} or {@link #setConfigLocations(List)}
  * property setters.
  * <p>
- * <b>Note</b>: multiple configurations can be "accumulated" since {@link Builder#loadFromStream(String, InputStream, boolean)} doesn't
- * replace but adds to the map (this also means that loading order of configuration files matters).
- * <p>
  * In addition Spring's property mechanism can be used via {@link #setSettings(Map)} property setter which allows for local settings to be
  * configured via Spring.
  * <p>
@@ -147,6 +144,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         } else {
         }*/
 
+        // Version 6
         if (this.client == null) {
 
             Builder builder = getConfiguredBuilder();
@@ -164,6 +162,20 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             String[] splittedHost = host.split( ":" );
             this.client.addTransportAddress( new TransportAddress(  InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
         }
+
+        // Version 2
+        /*Properties props = getPropertiesFromElasticsearch();
+        if (props != null) {
+            client = TransportClient.builder().settings( Settings.builder().put( props ) ).build();
+        } else {
+            client = TransportClient.builder().build();
+        }
+
+        for (String host : esRemoteHosts) {
+            String[] splittedHost = host.split( ":" );
+            client.addTransportAddress( new InetSocketTransportAddress(InetAddress.getByName(splittedHost[0]), Integer.valueOf( splittedHost[1] )) );
+        }*/
+
 
     }
 
@@ -205,6 +217,12 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         }
     }
 
+    /**
+     * Elasticsearch does not allow creating local nodes. Get the client directly instead.
+     * @return
+     * @throws Exception
+     */
+    @Deprecated
     public Node getObject() throws Exception {
         int cnt = 1;
         while (node == null && cnt <= 10) {

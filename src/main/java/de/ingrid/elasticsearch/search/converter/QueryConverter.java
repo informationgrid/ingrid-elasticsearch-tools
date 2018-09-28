@@ -31,10 +31,9 @@ import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction.
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
-import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder.FilterFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -114,10 +113,10 @@ public class QueryConverter implements IQueryParsers {
             .factor( _config.boostFactor );
         
         // create the wrapper query to apply the score function to the query
-        FilterFunctionBuilder[] functions = new FilterFunctionBuilder[1];
-        functions[0] = new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc );
+        /*FilterFunctionBuilder[] functions = new FilterFunctionBuilder[1];
+        functions[0] = new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc );*/
         
-        FunctionScoreQueryBuilder funcScoreQuery = new FunctionScoreQueryBuilder( functions );
+        FunctionScoreQueryBuilder funcScoreQuery = new FunctionScoreQueryBuilder( scoreFunc );
         funcScoreQuery.boostMode( getBoostMode(_config.boostMode) );
         return funcScoreQuery;
     }
