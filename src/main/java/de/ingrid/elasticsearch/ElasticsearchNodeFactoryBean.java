@@ -68,7 +68,6 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     protected final Log log = LogFactory.getLog( getClass() );
 
-    @Autowired
     private ElasticConfig config;
 
     private List<Resource> configLocations;
@@ -82,6 +81,10 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
     private TransportClient client = null;
 
     private Properties properties;
+
+    public ElasticsearchNodeFactoryBean(@Autowired ElasticConfig config) {
+        this.config = config;
+    }
 
     public void setConfigLocation(final Resource configLocation) {
         this.configLocation = configLocation;

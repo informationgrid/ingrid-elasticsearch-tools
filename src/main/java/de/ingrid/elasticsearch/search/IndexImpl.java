@@ -64,7 +64,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private static Logger log = Logger.getLogger( IndexImpl.class );
     
-    @Autowired
     private QueryBuilderService queryBuilderService;
 
     private ElasticConfig config;
@@ -84,9 +83,10 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     public List<String> indexSearchInTypes = new ArrayList<>();
 
     @Autowired
-    public IndexImpl(ElasticConfig config, IndexManager indexManager, QueryConverter qc, FacetConverter fc) {
+    public IndexImpl(ElasticConfig config, IndexManager indexManager, QueryConverter qc, FacetConverter fc, QueryBuilderService queryBuilderService) {
         this.indexManager = indexManager;
         this.config = config;
+        this.queryBuilderService = queryBuilderService;
         
         detailFields = Stream.concat( 
                 Arrays.stream( new String[] { 
