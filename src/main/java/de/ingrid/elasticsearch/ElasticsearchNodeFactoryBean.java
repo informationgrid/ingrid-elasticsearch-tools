@@ -82,7 +82,8 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     private Properties properties;
 
-    public ElasticsearchNodeFactoryBean(@Autowired ElasticConfig config) {
+    @Autowired
+    public ElasticsearchNodeFactoryBean(ElasticConfig config) {
         this.config = config;
     }
 
@@ -165,21 +166,6 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             String[] splittedHost = host.split( ":" );
             this.client.addTransportAddress( new TransportAddress(  InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
         }
-
-        // Version 2
-        /*Properties props = getPropertiesFromElasticsearch();
-        if (props != null) {
-            client = TransportClient.builder().settings( Settings.builder().put( props ) ).build();
-        } else {
-            client = TransportClient.builder().build();
-        }
-
-        for (String host : esRemoteHosts) {
-            String[] splittedHost = host.split( ":" );
-            client.addTransportAddress( new InetSocketTransportAddress(InetAddress.getByName(splittedHost[0]), Integer.valueOf( splittedHost[1] )) );
-        }*/
-
-
     }
 
     private Builder getConfiguredBuilder() {
