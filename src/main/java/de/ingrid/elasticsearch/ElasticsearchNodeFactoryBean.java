@@ -136,8 +136,10 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
     private Builder getConfiguredBuilder() {
         Properties props = getPropertiesFromElasticsearch();
         Builder builder = Settings.builder();
-        for (String key : props.stringPropertyNames()) {
-            builder.put(key, props.getProperty(key));
+        if (props != null) {
+            for (String key : props.stringPropertyNames()) {
+                builder.put(key, props.getProperty(key));
+            }
         }
         return builder;
     }
