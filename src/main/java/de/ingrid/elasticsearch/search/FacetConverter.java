@@ -79,7 +79,7 @@ public class FacetConverter {
             String name = facetDefinition.getName();
             String field = facetDefinition.getField();
             List<FacetClassDefinition> classes = facetDefinition.getClasses();
-            AbstractAggregationBuilder aggr = null;
+            AbstractAggregationBuilder aggr;
             if (classes != null) {
                 for (FacetClassDefinition fClass : classes) {
                     IngridQuery facetQuery;
@@ -88,8 +88,7 @@ public class FacetConverter {
                         aggr = AggregationBuilders.filter( fClass.getName(), queryConverter.convert( facetQuery ) );
                         aggregations.add( aggr );
                     } catch (ParseException e) {
-                        log.error( "Error during parsing facets." );
-                        e.printStackTrace();
+                        log.error( "Error during parsing facets", e );
                     }
                 }
                 

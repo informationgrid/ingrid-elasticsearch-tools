@@ -61,7 +61,7 @@ public class FacetUtils {
      */
     @SuppressWarnings( { "unchecked" })
     public static List<FacetDefinition> getFacetDefinitions(IngridQuery query) {
-        List<FacetDefinition> facetDefs = new ArrayList<FacetDefinition>();
+        List<FacetDefinition> facetDefs = new ArrayList<>();
 
         List<IngridDocument> facets = (List<IngridDocument>) query.get("FACETS");
         if (facets == null)
@@ -69,17 +69,16 @@ public class FacetUtils {
 
         // iterate through all facets
         for (IngridDocument facet : facets) {
-            IngridDocument aFacet = facet;
-            String facetName = (String) aFacet.get("id");
-            String facetField = (String) aFacet.get("field");
+            String facetName = (String) facet.get("id");
+            String facetField = (String) facet.get("field");
             if (facetField == null) {
                 facetField = facetName;
             }
-            String facetFragment = (String) aFacet.get("query");
+            String facetFragment = (String) facet.get("query");
             FacetDefinition fd = new FacetDefinition(facetName, facetField);
             fd.setQueryFragment(facetFragment);
 
-            List<Map<String, String>> facetClasses = (List<Map<String, String>>) aFacet.get("classes");
+            List<Map<String, String>> facetClasses = (List<Map<String, String>>) facet.get("classes");
             // if facet classes were defined then look through those and create
             // their queries as String
             if (facetClasses != null) {

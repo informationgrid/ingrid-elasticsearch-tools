@@ -71,7 +71,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridCall call = new IngridCall();
         call.setMethod( "getIndexNameFromAliasName" );
         call.setTarget( "__centralIndex__" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         map.put( "indexAlias", indexAlias );
         map.put( "partialName", partialName );
         call.setParameter( map );
@@ -89,7 +89,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     public boolean createIndex(String name) {
         
         IngridCall call = prepareCall( "createIndex" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         InputStream mappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
         map.put( "name", name );
         try {
@@ -131,7 +131,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     @Override
     public void switchAlias(String aliasName, String oldIndex, String newIndex) {
         IngridCall call = prepareCall( "switchAlias" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         map.put( "aliasName", aliasName );
         map.put( "oldIndex", oldIndex );
         map.put( "newIndex", newIndex );

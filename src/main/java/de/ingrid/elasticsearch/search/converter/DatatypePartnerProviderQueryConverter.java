@@ -45,7 +45,7 @@ public class DatatypePartnerProviderQueryConverter implements IQueryParsers {
         final List<FieldQuery> provider = (List<FieldQuery>)(List<?>)ingridQuery.getArrayList( IngridQuery.PROVIDER );
         
         // concatenate all fields
-        List<FieldQuery> allFields = new ArrayList<FieldQuery>();
+        List<FieldQuery> allFields = new ArrayList<>();
         if (dataTypes != null) allFields.addAll( dataTypes );
         if (partner != null) allFields.addAll( partner );
         if (provider != null) allFields.addAll( provider );

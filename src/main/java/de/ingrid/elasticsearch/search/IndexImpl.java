@@ -108,8 +108,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             }
 
         } catch (Exception e) {
-            log.error( "Error during initialization of ElasticSearch-Client!" );
-            e.printStackTrace();
+            log.error( "Error during initialization of ElasticSearch-Client!", e );
         }
 
     }
@@ -217,7 +216,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
             return hits;
         } catch (SearchPhaseExecutionException ex) {
-            log.error( "Search failed on index: " + indexInfos, ex );
+            log.error( "Search failed on indices: " + realIndexNames, ex );
             return new IngridHits( 0, new IngridHit[0] );
         }
     }
@@ -428,7 +427,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         try {
             indexManager.shutdown();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error shutting down IndexManager", e);
         }
     }
 

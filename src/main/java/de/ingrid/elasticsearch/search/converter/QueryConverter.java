@@ -54,7 +54,7 @@ public class QueryConverter implements IQueryParsers {
     private ElasticConfig _config;
 
     public QueryConverter() {
-        _queryConverter = new ArrayList<IQueryParsers>();
+        _queryConverter = new ArrayList<>();
     }
 
     public void setQueryParsers(List<IQueryParsers> parsers) {
@@ -122,7 +122,7 @@ public class QueryConverter implements IQueryParsers {
     }
 
     private Modifier getModifier(String esBoostModifier) {
-        Modifier result = null;
+        Modifier result;
         switch (esBoostModifier) {
         case "LN":
             result = Modifier.LN;
@@ -163,7 +163,7 @@ public class QueryConverter implements IQueryParsers {
     }
 
     private CombineFunction getBoostMode(String esBoostMode) {
-        CombineFunction result = null;
+        CombineFunction result;
         switch (esBoostMode) {
         case "SUM":
             result = CombineFunction.SUM;

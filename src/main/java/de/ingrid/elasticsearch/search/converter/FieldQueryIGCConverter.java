@@ -58,12 +58,12 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         FieldQuery[] fields = ingridQuery.getFields();
 
         
-        Map<String,Object> geoMap = new HashMap<String,Object>(fields.length);
-        Map<String,Object> timeMap = new HashMap<String,Object>(fields.length);
+        Map<String,Object> geoMap = new HashMap<>(fields.length);
+        Map<String,Object> timeMap = new HashMap<>(fields.length);
         
         BoolQueryBuilder bq = null;
         for (FieldQuery fieldQuery : fields) {
-            QueryBuilder subQuery = null;
+            QueryBuilder subQuery;
             
             String indexField = fieldQuery.getFieldName();
             String value = fieldQuery.getFieldValue().toLowerCase();
@@ -82,7 +82,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             } else if (indexField.equals("coord")) {
                 List<String> list = (List<String>) geoMap.get(indexField);
                 if (list == null) {
-                    list = new LinkedList<String>();
+                    list = new LinkedList<>();
                 }
                 list.add(value);
                 geoMap.put(indexField, list);
@@ -99,7 +99,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             } else if ("time".equals(indexField)) {
                 List<String> list = (List<String>) timeMap.get(indexField);
                 if (list == null) {
-                    list = new LinkedList<String>();
+                    list = new LinkedList<>();
                 }
                 list.add(value);
                 timeMap.put(indexField, list);
@@ -126,7 +126,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         }
         
         if (null == geoMap.get("coord")) {
-            final List<String> list = new LinkedList<String>();
+            final List<String> list = new LinkedList<>();
             list.add("exact");
             geoMap.put("coord", list);
         }
@@ -140,9 +140,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         List<String> list = (List<String>) geoMap.get("coord");
         if (list != null) {
 //            BooleanQuery.setMaxClauseCount(10240);
-            Iterator<String> iterator = list.iterator();
-            while (iterator.hasNext()) {
-                String value = iterator.next();
+            for (String value : list) {
                 if ("inside".equals(value)) {
                     // innerhalb
                     prepareInsideGeoQuery(booleanQuery, geoMap);
@@ -294,9 +292,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             // nothing selected -> default inside
             prepareInsideTime(query, timeMap);
         } else {
-            Iterator<String> iterator = list.iterator();
-            while (iterator.hasNext()) {
-                String value = iterator.next();
+            for (String value : list) {
                 if ("intersect".equals(value)) {
                     // innerhalb oder schneidet
                     prepareInsideOrIntersectTime(query, timeMap);

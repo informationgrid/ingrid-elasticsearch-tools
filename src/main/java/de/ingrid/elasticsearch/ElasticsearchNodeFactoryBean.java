@@ -36,26 +36,16 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 /**
  * A {@link FactoryBean} implementation used to create a {@link Node} element which is an embedded instance of the cluster within a running
  * application.
- * <p>
- * This factory allows for defining custom configuration via the {@link #setConfigLocation(Resource)} or {@link #setConfigLocations(List)}
- * property setters.
- * <p>
- * In addition Spring's property mechanism can be used via {@link #setSettings(Map)} property setter which allows for local settings to be
- * configured via Spring.
  * <p>
  * The lifecycle of the underlying {@link Node} instance is tied to the lifecycle of the bean via the {@link #destroy()} method which calls
  * {@link Node#close()}
@@ -70,37 +60,13 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     private ElasticConfig config;
 
-    private List<Resource> configLocations;
-
-    private Resource configLocation;
-
-    private Map<String, String> settings;
-
     private Node node = null;
 
     private TransportClient client = null;
 
-    private Properties properties;
-
     @Autowired
-    public ElasticsearchNodeFactoryBean(ElasticConfig config) {
+    public void init(ElasticConfig config) {
         this.config = config;
-    }
-
-    public void setConfigLocation(final Resource configLocation) {
-        this.configLocation = configLocation;
-    }
-
-    public void setConfigLocations(final List<Resource> configLocations) {
-        this.configLocations = configLocations;
-    }
-
-    public void setSettings(final Map<String, String> settings) {
-        this.settings = settings;
-    }
-
-    public void setProperties(Properties props) {
-        this.properties = props;
     }
 
     public void afterPropertiesSet() throws Exception {
@@ -128,7 +94,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
 
     public void createTransportClient(String[] esRemoteHosts) throws UnknownHostException {
 
-        /**
+        /*
          * The following commented code will be used for the new Client in Elasticsearch 7!?
          */
 
@@ -152,9 +118,8 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         if (this.client == null) {
 
             Builder builder = getConfiguredBuilder();
-            PreBuiltTransportClient transportClient = new PreBuiltTransportClient(builder.build());
 
-            client = transportClient;
+            client = new PreBuiltTransportClient(builder.build());
 
         } else {
             for (TransportAddress addr : this.client.transportAddresses()) {
@@ -190,7 +155,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             }
             return p;
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Could not get Elasticsearch Properties", e);
             return null;
         }
     }

@@ -52,11 +52,11 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
         BoolQueryBuilder bq = null;//QueryBuilders.boolQuery();
         
         if (terms.length > 0) {
-            List<String> termsAnd = new ArrayList<String>();
-            List<String> termsOr = new ArrayList<String>();
+            List<String> termsAnd = new ArrayList<>();
+            List<String> termsOr = new ArrayList<>();
             for (TermQuery term : terms) {
                 String t = term.getTerm();
-                QueryBuilder subQuery = null;
+                QueryBuilder subQuery;
 
                 // if it's a phrase
                 if (t.contains( " " )) {

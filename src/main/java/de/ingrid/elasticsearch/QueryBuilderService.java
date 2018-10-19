@@ -22,17 +22,14 @@
  */
 package de.ingrid.elasticsearch;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.index.query.TypeQueryBuilder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class QueryBuilderService {
