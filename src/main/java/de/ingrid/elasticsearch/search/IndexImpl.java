@@ -362,7 +362,15 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
 
-        detail.setDataSourceName( dHit.field( PlugDescription.DATA_SOURCE_NAME ).getValue().toString() );
+        DocumentField dataSourceName = dHit.field(PlugDescription.DATA_SOURCE_NAME);
+
+        if (dataSourceName == null) {
+            log.error("The field dataSourceName could not be fetched from search index. This index field has to be stored! " +
+                    "Check the index mapping file of the component.");
+            throw new RuntimeException("DataSourceName not found in SearchHit. Possibly wrong mapping where index field is not stored.");
+        }
+
+        detail.setDataSourceName( dataSourceName.getValue().toString() );
         detail.setArray( "datatype", getStringArrayFromSearchHit( dHit, "datatype" ) );
         detail.setArray( PlugDescription.PARTNER, getStringArrayFromSearchHit( dHit, PlugDescription.PARTNER ) );
         detail.setArray( PlugDescription.PROVIDER, getStringArrayFromSearchHit( dHit, PlugDescription.PROVIDER ) );
