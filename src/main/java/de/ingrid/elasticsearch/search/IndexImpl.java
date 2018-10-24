@@ -156,7 +156,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                     indexInfo.getToAlias(), 
                     indexInfo.getRealIndexName() == null ? indexInfo.getToAlias() : indexInfo.getRealIndexName() );
             
-            if (realIndex != null) {
+            if (realIndex != null && !realIndices.contains(realIndex)) {
                 realIndices.add( realIndex );
             }
         }
