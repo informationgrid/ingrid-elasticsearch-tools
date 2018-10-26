@@ -31,9 +31,6 @@ public class ElasticConfig {
     @Value("${elastic.enabled:true}")
     public boolean isEnabled;
     
-    @Value("${elastic.isRemote:true}")
-    public boolean isRemote;
-    
     @Value("${elastic.remoteHosts:localhost:9300}")
     public String[] remoteHosts;
     

@@ -82,7 +82,10 @@ public class IndexManager implements IIndexManager {
         
         _config = config;
         _client = elastic.getClient();
-        _bulkProcessor = BulkProcessor.builder( _client, getBulkProcessorListener() ).setFlushInterval( TimeValue.timeValueSeconds(5L) ).build();
+        _bulkProcessor = BulkProcessor
+                .builder( _client, getBulkProcessorListener() )
+                .setFlushInterval( TimeValue.timeValueSeconds(5L) )
+                .build();
         iPlugDocIdMap = new HashMap<>();
     }
 

@@ -75,13 +75,11 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             if (config.esCommunicationThroughIBus) {
                 // do not initialize Elasticsearch since we use central index!
                 
-            } else if (config.isRemote) {
-                log.debug( "Elasticsearch: creating transport client" );
-                createTransportClient( config.remoteHosts );
-
             } else {
-                log.error( "You cannot create an internal Elasticsearch cluster anymore!" );
-                System.exit(1);
+                if (log.isDebugEnabled()) {
+                    log.debug( "Elasticsearch: creating transport client: " + String.join(", ", config.remoteHosts ) );
+                }
+                createTransportClient( config.remoteHosts );
             }
         } else {
             log.warn( "Since Indexing is not enabled, this component should not have Elastic Search enabled at all! This bean should be excluded in the spring configuration." );
