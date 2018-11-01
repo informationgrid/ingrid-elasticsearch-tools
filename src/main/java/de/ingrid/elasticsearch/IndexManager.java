@@ -51,6 +51,7 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -82,11 +83,15 @@ public class IndexManager implements IIndexManager {
         
         _config = config;
         _client = elastic.getClient();
+        iPlugDocIdMap = new HashMap<>();
+    }
+
+    @PostConstruct
+    public void postConstruct() {
         _bulkProcessor = BulkProcessor
                 .builder( _client, getBulkProcessorListener() )
                 .setFlushInterval( TimeValue.timeValueSeconds(5L) )
                 .build();
-        iPlugDocIdMap = new HashMap<>();
     }
 
     /**
