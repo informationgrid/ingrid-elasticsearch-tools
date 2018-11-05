@@ -77,13 +77,13 @@ public class IndexManager implements IIndexManager {
     
     @Autowired
     public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
+        _config = config;
+        iPlugDocIdMap = new HashMap<>();
 
         // do not initialize when using central index
         if (config.esCommunicationThroughIBus) return;
-        
-        _config = config;
+
         _client = elastic.getClient();
-        iPlugDocIdMap = new HashMap<>();
     }
 
     @PostConstruct
