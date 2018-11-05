@@ -88,6 +88,9 @@ public class IndexManager implements IIndexManager {
 
     @PostConstruct
     public void postConstruct() {
+        // do not initialize when using central index
+        if (_config.esCommunicationThroughIBus) return;
+
         _bulkProcessor = BulkProcessor
                 .builder( _client, getBulkProcessorListener() )
                 .setFlushInterval( TimeValue.timeValueSeconds(5L) )
