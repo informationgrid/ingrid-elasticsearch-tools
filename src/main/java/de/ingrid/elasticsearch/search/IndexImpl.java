@@ -170,6 +170,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .setQuery( config.indexEnableBoost 
                         ? QueryBuilders.boolQuery().must( funcScoreQuery ).must( indexTypeFilter )
                         : QueryBuilders.boolQuery().must( query ).must( indexTypeFilter ) ) // Query
+                .storedFields("iPlugId")
                 .setFrom( startHit ).setSize( num ).setExplain( false );
 
         // search only in defined types within the index, if defined
@@ -278,7 +279,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         String groupBy = ingridQuery.getGrouped();
         for (SearchHit hit : hits.getHits()) {
-            IngridHit ingridHit = new IngridHit( config.communicationProxyUrl, hit.getId(), -1, hit.getScore() );
+            IngridHit ingridHit = new IngridHit( hit.field("iPlugId").getValue(), hit.getId(), -1, hit.getScore() );
             ingridHit.put( ELASTIC_SEARCH_INDEX, hit.getIndex() );
             ingridHit.put( ELASTIC_SEARCH_INDEX_TYPE, hit.getType() );
 

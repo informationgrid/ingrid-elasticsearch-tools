@@ -31,13 +31,13 @@ public class ElasticConfig {
     @Value("${elastic.enabled:true}")
     public boolean isEnabled;
     
-    @Value("${elastic.remoteHosts:localhost:9300}")
+    @Value("#{'${elastic.remoteHosts:localhost:9300}'.split(',')}")
     public String[] remoteHosts;
     
     @Value("${elastic.indexWithAutoId:true}")
     public boolean indexWithAutoId;
     
-    @Value("${elastic.indexSearchDefaultFields:}")
+    @Value("#{'${elastic.indexSearchDefaultFields:}'.split(',')}")
     public String[] indexSearchDefaultFields;
 
     @Value("${elastic.boostField:boost}")
@@ -55,7 +55,7 @@ public class ElasticConfig {
     @Value("${index.field.title:}")
     public String indexFieldTitle;
 
-    @Value("${index.search.additional.detail.fields:}")
+    @Value("#{'${index.search.additional.detail.fields:}'.split(',')}")
     public String[] additionalSearchDetailFields;
 
     @Value("${index.field.summary:}")
@@ -72,10 +72,10 @@ public class ElasticConfig {
     @Value("${index.search.groupByUrl:false}")
     public boolean groupByUrl;
 
-    @Value("${plugdescription.partner:}")
+    @Value("#{'${plugdescription.partner:}'.split(',')}")
     public String[] partner;
 
-    @Value("${plugdescription.provider:}")
+    @Value("#{'${plugdescription.provider:}'.split(',')}")
     public String[] provider;
 
     @Value("${index.fields.include:*}")

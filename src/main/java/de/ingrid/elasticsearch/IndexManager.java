@@ -24,6 +24,7 @@ package de.ingrid.elasticsearch;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import de.ingrid.utils.ElasticDocument;
+import de.ingrid.utils.IngridDocument;
 import de.ingrid.utils.xml.XMLSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +49,8 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -368,6 +371,58 @@ public class IndexManager implements IIndexManager {
         return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
     }
 
+
+    public IngridDocument getAllIPlugInformation() {
+        SearchResponse response = _client.prepareSearch( "ingrid_meta" )
+                .setTypes( "info" )
+                .setSize( 1000 )
+                .setFetchSource(true)
+                .get();
+
+        SearchHits hits = response.getHits();
+        List<IngridDocument> iPlugInfos = new ArrayList<>();
+
+        for (int i = 0; i < hits.totalHits; i++) {
+            SearchHit hit = hits.getAt(i);
+            IngridDocument doc = mapIPlugInformatioToIngridDocument(hits.getAt(0));
+            iPlugInfos.add(doc);
+        }
+
+        IngridDocument result = new IngridDocument();
+        result.put("iPlugInfos", iPlugInfos);
+        return result;
+
+    }
+
+    public IngridDocument getIPlugInformation(String plugId) {
+        SearchResponse response = _client.prepareSearch( "ingrid_meta" )
+                .setTypes( "info" )
+                .setQuery( QueryBuilders.termQuery( "plugId", plugId ) )
+                // .setFetchSource( new String[] { "*" }, null )
+                .setSize( 1 )
+                .setFetchSource(true)
+                //.storedFields("iPlugName", "datatype", "fields")
+                .get();
+
+        SearchHits hits = response.getHits();
+
+        if (hits.totalHits > 0) {
+            return mapIPlugInformatioToIngridDocument(hits.getAt(0));
+        }
+
+        return null;
+    }
+
+    private IngridDocument mapIPlugInformatioToIngridDocument(SearchHit hit) {
+        IngridDocument doc = new IngridDocument();
+
+        Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+        doc.put("plugId", sourceAsMap.get("plugId"));
+        doc.put("name", sourceAsMap.get("iPlugName"));
+        doc.put("plugdescription", sourceAsMap.get("plugdescription"));
+        return doc;
+    }
+
     @Override
     public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
         String docId = iPlugDocIdMap.get( id );
@@ -377,7 +432,7 @@ public class IndexManager implements IIndexManager {
         if (docId == null) {
             SearchResponse response = _client.prepareSearch( "ingrid_meta" )
                     .setTypes( "info" )
-                    .setQuery( QueryBuilders.termQuery( "plugId", id ) )
+                    .setQuery( QueryBuilders.termQuery( "indexId", id ) )
                     // .setFetchSource( new String[] { "*" }, null )
                     .setSize( 1 )
                     .get();
