@@ -122,7 +122,7 @@ public class IndexManager implements IIndexManager {
         _bulkProcessor.add( indexRequest.source( doc ) );
 
         if (updateOldIndex) {
-            String oldIndex = getIndexNameFromAliasName( indexinfo.getToIndex(), null );
+            String oldIndex = getIndexNameFromAliasName( indexinfo.getToAlias(), null );
             // if the current index differs from the real index, then it means there's an indexing going on
             // and if the real index name is the same as the index alias, it means that no complete indexing happened yet
             if ((oldIndex != null) && !oldIndex.equals( indexinfo.getRealIndexName() ) && (!indexinfo.getToIndex().equals( indexinfo.getRealIndexName() ))) {
@@ -147,7 +147,7 @@ public class IndexManager implements IIndexManager {
         _bulkProcessor.add( deleteRequest );
 
         if (updateOldIndex) {
-            String oldIndex = getIndexNameFromAliasName( indexinfo.getToIndex(), null );
+            String oldIndex = getIndexNameFromAliasName( indexinfo.getToAlias(), null );
             if (!oldIndex.equals( indexinfo.getRealIndexName() )) {
                 IndexInfo otherIndexInfo = indexinfo.clone();
                 otherIndexInfo.setRealIndexName( oldIndex );
