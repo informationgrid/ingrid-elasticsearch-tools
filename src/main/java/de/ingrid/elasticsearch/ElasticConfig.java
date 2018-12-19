@@ -28,6 +28,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class ElasticConfig {
 
+    @Value("${iplug.uuid:}")
+    public String uuid;
+
     @Value("${elastic.enabled:true}")
     public boolean isEnabled;
     

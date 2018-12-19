@@ -365,10 +365,7 @@ public class IndexManager implements IIndexManager {
 
     @Override
     public String getIndexTypeIdentifier(IndexInfo indexInfo) {
-        String componentIdentifier = indexInfo.getComponentIdentifier();
-        if (componentIdentifier == null) componentIdentifier = _config.communicationProxyUrl;
-        String clientId = componentIdentifier.replace( "/", "" );
-        return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
+        return _config.uuid + "=>" + indexInfo.getToIndex() + ":" + indexInfo.getToType();
     }
 
 
