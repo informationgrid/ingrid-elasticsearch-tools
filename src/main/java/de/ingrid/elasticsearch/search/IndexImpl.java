@@ -446,7 +446,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         // iterate over all indices until document was found
         for (IndexInfo indexName : indexNames) {
             try {
-                Map<String, Object> source = indexManager.getClient().prepareGet( indexName.getToAlias(), null, idAsString )
+                Map<String, Object> source = indexManager.getClient().prepareGet( indexName.getRealIndexName(), null, idAsString )
                         .setFetchSource( config.indexFieldsIncluded, config.indexFieldsExcluded )
                         .execute().actionGet().getSource();
                 
