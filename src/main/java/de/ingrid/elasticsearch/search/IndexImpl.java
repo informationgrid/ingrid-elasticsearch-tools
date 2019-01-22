@@ -51,10 +51,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Component
@@ -300,7 +297,10 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         String documentId = hit.getDocumentId();
         String fromIndex = hit.getString( ELASTIC_SEARCH_INDEX );
         String fromType = hit.getString( ELASTIC_SEARCH_INDEX_TYPE );
-        String[] allFields = Stream.concat( Arrays.stream( detailFields ), Arrays.stream( requestedFields ) ).toArray(String[]::new);
+        String[] allFields = Stream
+                .concat( Arrays.stream( detailFields ), Arrays.stream( requestedFields ) )
+                .filter(Objects::nonNull)
+                .toArray(String[]::new);
 
         // We have to search here again, to get a highlighted summary of the result!
         QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
