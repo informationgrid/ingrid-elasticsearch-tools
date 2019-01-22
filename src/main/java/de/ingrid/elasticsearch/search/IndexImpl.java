@@ -60,8 +60,6 @@ import java.util.stream.Stream;
 @Component
 public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
-    public static final String DETAIL_URL = "url";
-
     private static Logger log = Logger.getLogger( IndexImpl.class );
     
     private QueryBuilderService queryBuilderService;
@@ -80,7 +78,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private IndexManager indexManager;
 
-    public List<String> indexSearchInTypes = new ArrayList<>();
 
     @Autowired
     public IndexImpl(ElasticConfig config, IndexManager indexManager, QueryConverter qc, FacetConverter fc, QueryBuilderService queryBuilderService) {
@@ -127,7 +124,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         boolean isLocationSearch = containsBoundingBox(ingridQuery);
         boolean hasFacets = ingridQuery.containsKey( "FACETS" );
-        String[] instances = getSearchInstances( ingridQuery );
 
         // request grouping information from index if necessary
         // see IndexImpl.getHitsFromResponse for usage
@@ -172,11 +168,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                         : QueryBuilders.boolQuery().must( query ).must( indexTypeFilter ) ) // Query
                 .storedFields("iPlugId")
                 .setFrom( startHit ).setSize( num ).setExplain( false );
-
-        // search only in defined types within the index, if defined
-        if (instances.length > 0) {
-            srb.setTypes( instances );
-        }
 
         if (fields == null) {
             srb = srb.setFetchSource( false );
@@ -234,21 +225,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             }
         }
         return found;
-    }
-
-    /**
-     * Check first the query for a hidden field which contains the information of the instances to search in for. If there's none, then use
-     * the defined one in the configuration. The parameter in the query should be only used for an internal search within the iPlug.
-     * 
-     * @param ingridQuery
-     * @return
-     */
-    private String[] getSearchInstances(IngridQuery ingridQuery) {
-        String[] instances = (String[]) ingridQuery.getArray( "searchInInstances" );
-        if (instances == null || instances.length == 0) {
-            instances = this.indexSearchInTypes.toArray( new String[0] );
-        }
-        return instances;
     }
 
     /**

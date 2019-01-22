@@ -381,7 +381,7 @@ public class IndexManager implements IIndexManager {
 
         for (int i = 0; i < hits.totalHits; i++) {
             SearchHit hit = hits.getAt(i);
-            IngridDocument doc = mapIPlugInformatioToIngridDocument(hits.getAt(0));
+            IngridDocument doc = mapIPlugInformatioToIngridDocument(hits.getAt(i));
             iPlugInfos.add(doc);
         }
 
