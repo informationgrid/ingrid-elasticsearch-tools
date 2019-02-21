@@ -227,7 +227,7 @@ public class IndexManager implements IIndexManager {
     }
 
     // type will not be used soon anymore
-    // use createIndex(String name, String source) instead
+    // use createIndex(String name, String source) instead?
     @Deprecated
     public boolean createIndex(String name, String type, String source) {
         boolean indexExists = indexExists( name );
@@ -282,6 +282,21 @@ public class IndexManager implements IIndexManager {
         }
 
         return false;
+    }
+
+
+    public String getDefaultMapping() {
+
+        InputStream defaultMappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
+        if (defaultMappingStream != null) {
+            try {
+                return XMLSerializer.getContents( defaultMappingStream );
+            } catch (IOException e) {
+                log.error("Error deserializing default mapping file", e);
+            }
+        }
+        return null;
+
     }
 
     public boolean indexExists(String name) {

@@ -239,6 +239,19 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
+    public String getDefaultMapping() {
+        InputStream mappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
+        try {
+            if (mappingStream != null) {
+                return XMLSerializer.getContents( mappingStream );
+            }
+        } catch (IOException e) {
+            log.error( "Error getting default mapping for index creation", e );
+        }
+        return null;
+    }
+
+    @Override
     public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException {
         IngridCall call = prepareCall( "updateHearbeatInformation" );
         call.setParameter(iPlugIdInfos);
