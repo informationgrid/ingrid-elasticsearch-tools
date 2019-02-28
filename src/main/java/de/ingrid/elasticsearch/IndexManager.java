@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequestBuilder;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.exists.types.TypesExistsRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BulkProcessor;
@@ -227,16 +228,20 @@ public class IndexManager implements IIndexManager {
     }
 
     // type will not be used soon anymore
-    // use createIndex(String name, String source) instead?
-    @Deprecated
-    public boolean createIndex(String name, String type, String source) {
+    // use createIndex(String name, String esMapping) instead?
+    // @Deprecated
+    public boolean createIndex(String name, String type, String esMapping, String esSettings) {
         boolean indexExists = indexExists( name );
         if (!indexExists) {
             
-            if (source != null) {
-                _client.admin().indices().prepareCreate( name )
-                    .addMapping( type, source, XContentType.JSON )
-                    .execute().actionGet();
+            if (esMapping != null) {
+                CreateIndexRequestBuilder createIndexRequestBuilder = _client.admin().indices().prepareCreate(name)
+                        .addMapping(type, esMapping, XContentType.JSON);
+
+                if (esSettings != null) {
+                    createIndexRequestBuilder.setSettings(esSettings, XContentType.JSON);
+                }
+                createIndexRequestBuilder.execute().actionGet();
             } else {
                 _client.admin().indices().prepareCreate( name )
                 .execute().actionGet();
@@ -284,7 +289,6 @@ public class IndexManager implements IIndexManager {
         return false;
     }
 
-
     public String getDefaultMapping() {
 
         InputStream defaultMappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
@@ -293,6 +297,20 @@ public class IndexManager implements IIndexManager {
                 return XMLSerializer.getContents( defaultMappingStream );
             } catch (IOException e) {
                 log.error("Error deserializing default mapping file", e);
+            }
+        }
+        return null;
+
+    }
+
+    public String getDefaultSettings() {
+
+        InputStream defaultSettingsStream = getClass().getClassLoader().getResourceAsStream( "default-settings.json" );
+        if (defaultSettingsStream != null) {
+            try {
+                return XMLSerializer.getContents( defaultSettingsStream );
+            } catch (IOException e) {
+                log.error("Error deserializing default settings file", e);
             }
         }
         return null;
@@ -369,8 +387,8 @@ public class IndexManager implements IIndexManager {
                 log.error("Could not find mapping file 'ingrid-meta-mapping.json' for creating index 'ingrid_meta'");
             } else {
                 try {
-                    String source = XMLSerializer.getContents(ingridMetaMappingStream);
-                    createIndex("ingrid_meta", "info", source);
+                    String mapping = XMLSerializer.getContents(ingridMetaMappingStream);
+                    createIndex("ingrid_meta", "info", mapping, null);
                 } catch (IOException e) {
                     log.error("Could not deserialize: ingrid-meta-mapping.json", e);
                 }

@@ -34,7 +34,7 @@ public interface IIndexManager {
     
     boolean createIndex(String name);
     
-    boolean createIndex(String name, String type, String source);
+    boolean createIndex(String name, String type, String esMapping, String esSettings);
     
     void switchAlias(String aliasName, String oldIndex, String newIndex);
     
@@ -53,7 +53,9 @@ public interface IIndexManager {
     Map<String, Object> getMapping(IndexInfo indexInfo);
 
     String getDefaultMapping();
-    
+
+    String getDefaultSettings();
+
     void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
     
     void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);

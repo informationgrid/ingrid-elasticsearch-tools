@@ -111,12 +111,13 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public boolean createIndex(String name, String type, String mapping) {
+    public boolean createIndex(String name, String type, String esMapping, String esSettings) {
         IngridCall call = prepareCall( "createIndex" );
         Map<String,String> map = new HashMap<>();
         map.put( "name", name );
         map.put( "type", type );
-        map.put( "mapping", mapping );
+        map.put( "esMapping", esMapping );
+        map.put( "esSettings", esSettings );
         call.setParameter( map );
         
         try {
@@ -244,6 +245,19 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         try {
             if (mappingStream != null) {
                 return XMLSerializer.getContents( mappingStream );
+            }
+        } catch (IOException e) {
+            log.error( "Error getting default mapping for index creation", e );
+        }
+        return null;
+    }
+
+    @Override
+    public String getDefaultSettings() {
+        InputStream settingsStream = getClass().getClassLoader().getResourceAsStream( "default-settings.json" );
+        try {
+            if (settingsStream != null) {
+                return XMLSerializer.getContents( settingsStream );
             }
         } catch (IOException e) {
             log.error( "Error getting default mapping for index creation", e );
