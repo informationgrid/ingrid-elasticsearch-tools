@@ -111,13 +111,13 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public boolean createIndex(String name, String type, String source) {
+    public boolean createIndex(String name, String type, String mapping) {
         IngridCall call = prepareCall( "createIndex" );
         Map<String,String> map = new HashMap<>();
         map.put( "name", name );
         map.put( "type", type );
-        map.put( "source", source );
-        call.setParameter( name );
+        map.put( "mapping", mapping );
+        call.setParameter( map );
         
         try {
             IngridDocument response = getIBus().call( call );
