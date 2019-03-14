@@ -31,7 +31,8 @@ import de.ingrid.utils.*;
 import de.ingrid.utils.dsc.Column;
 import de.ingrid.utils.dsc.Record;
 import de.ingrid.utils.query.IngridQuery;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.search.SearchPhaseExecutionException;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
@@ -57,7 +58,7 @@ import java.util.stream.Stream;
 @Component
 public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
-    private static Logger log = Logger.getLogger( IndexImpl.class );
+    private static Logger log = LogManager.getLogger( IndexImpl.class );
     
     private QueryBuilderService queryBuilderService;
 

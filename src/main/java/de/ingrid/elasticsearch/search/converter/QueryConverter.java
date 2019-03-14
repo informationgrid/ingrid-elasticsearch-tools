@@ -25,7 +25,8 @@ package de.ingrid.elasticsearch.search.converter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.lucene.search.function.CombineFunction;
 import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction.Modifier;
 import org.elasticsearch.index.query.BoolQueryBuilder;
@@ -45,7 +46,7 @@ import de.ingrid.utils.query.IngridQuery;
 @Service
 public class QueryConverter implements IQueryParsers {
     
-    private static Logger log = Logger.getLogger( QueryConverter.class );
+    private static Logger log = LogManager.getLogger( QueryConverter.class );
     
     @Autowired
     private List<IQueryParsers> _queryConverter;

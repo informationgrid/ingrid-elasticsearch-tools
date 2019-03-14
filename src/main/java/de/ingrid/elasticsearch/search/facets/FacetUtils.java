@@ -26,15 +26,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
 import de.ingrid.utils.IngridDocument;
 import de.ingrid.utils.query.IngridQuery;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class FacetUtils {
 
     @SuppressWarnings("unused")
-    private static Logger LOG = Logger.getLogger(FacetUtils.class);
+    private static Logger LOG = LogManager.getLogger(FacetUtils.class);
 
     public static String getCacheKeyName(String facetName, String facetClassName) {
         return facetName + ":" + facetClassName;
