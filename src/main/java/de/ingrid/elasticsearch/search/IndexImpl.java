@@ -411,9 +411,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     @Override
     public IngridHitDetail[] getDetails(IngridHit[] hits, IngridQuery ingridQuery, String[] requestedFields) {
-        String fromIndex = null;
+        /*String fromIndex = null;
         String fromType = null;
-        List<IngridHitDetail> details = new ArrayList<IngridHitDetail>();
+        List<IngridHitDetail> details = new ArrayList<>();
         for (int i = 0; i < requestedFields.length; i++) {
             requestedFields[i] = requestedFields[i].toLowerCase();
         }
@@ -450,6 +450,14 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 details.add( createDetail(hit, dHit, requestedFields) );
 
             }
+        }*/
+
+        for (int i = 0; i < requestedFields.length; i++) {
+            requestedFields[i] = requestedFields[i].toLowerCase();
+        }
+        List<IngridHitDetail> details = new ArrayList<>();
+        for (IngridHit hit : hits) {
+            details.add( getDetail( hit, ingridQuery, requestedFields ) );
         }
         return details.toArray( new IngridHitDetail[0] );
     }
