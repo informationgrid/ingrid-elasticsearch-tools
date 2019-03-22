@@ -33,10 +33,7 @@ import de.ingrid.utils.dsc.Record;
 import de.ingrid.utils.query.IngridQuery;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.ShardSearchFailure;
+import org.elasticsearch.action.search.*;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -82,11 +79,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         this.indexManager = indexManager;
         this.config = config;
         this.queryBuilderService = queryBuilderService;
-        
+
         detailFields = Stream.concat( 
-                Arrays.stream( new String[] { 
-                        config.indexFieldTitle, 
-                        config.indexFieldSummary, 
+                Arrays.stream( new String[] {
                         PlugDescription.PARTNER, 
                         PlugDescription.PROVIDER, 
                         "datatype", 
@@ -312,14 +307,31 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .setQuery( query ) // Query
                 .setFrom( 0 )
                 .setSize( 1 )
-                .highlighter( new HighlightBuilder().field(config.indexFieldSummary) )
                 .storedFields( allFields )
                 .setExplain( false );
+
+        if(Arrays.stream(allFields).anyMatch(config.indexFieldSummary::equals)) {
+            srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary) );
+        }
 
         SearchResponse searchResponse = srb.execute().actionGet();
 
         SearchHits dHits = searchResponse.getHits();
         SearchHit dHit = dHits.getAt( 0 );
+        return createDetail(hit, dHits.getAt( 0 ), requestedFields);
+    }
+
+    private void addPlugDescriptionInformations(IngridHitDetail detail, String[] fields) {
+        for (int i = 0; i < fields.length; i++) {
+            if (fields[i].equals( PlugDescription.PARTNER )) {
+                detail.setArray( PlugDescription.PARTNER, config.partner );
+            } else if (fields[i].equals( PlugDescription.PROVIDER )) {
+                detail.setArray( PlugDescription.PROVIDER, config.provider );
+            }
+        }
+    }
+
+    private IngridHitDetail createDetail(IngridHit hit, SearchHit dHit, String[] requestedFields) {
 
         String title = "untitled";
         if (dHit.field( config.indexFieldTitle ) != null) {
@@ -353,23 +365,25 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         detail.setArray( PlugDescription.PARTNER, getStringArrayFromSearchHit( dHit, PlugDescription.PARTNER ) );
         detail.setArray( PlugDescription.PROVIDER, getStringArrayFromSearchHit( dHit, PlugDescription.PROVIDER ) );
 
-        detail.setDocumentId( documentId );
+        detail.setDocumentId( hit.getDocumentId() );
         for (String field : requestedFields) {
-            if (dHit.field( field ) != null) {
-                if (dHit.field(field).getValues() != null){
-                    if(dHit.field( field ).getValues().size() > 1){
-                        detail.put( field, dHit.field( field ).getValues());
-                    }else{
-                        if (dHit.field( field ).getValue() instanceof String) {
-                            detail.put( field, new String[] { dHit.field( field ).getValue() } );
+            if(detail.get(field) == null) {
+                if (dHit.field(field) != null) {
+                    if (dHit.field(field).getValues() != null) {
+                        if (dHit.field(field).getValues().size() > 1) {
+                            detail.put(field, dHit.field(field).getValues());
                         } else {
-                            detail.put( field, dHit.field( field ).getValue() );
+                            if (dHit.field(field).getValue() instanceof String) {
+                                detail.put(field, new String[]{dHit.field(field).getValue()});
+                            } else {
+                                detail.put(field, dHit.field(field).getValue());
+                            }
                         }
+                    } else if (dHit.field(field).getValue() instanceof String) {
+                        detail.put(field, new String[]{dHit.field(field).getValue()});
+                    } else {
+                        detail.put(field, dHit.field(field).getValue());
                     }
-                } else if (dHit.field( field ).getValue() instanceof String) {
-                    detail.put( field, new String[] { dHit.field( field ).getValue() } );
-                } else {
-                    detail.put( field, dHit.field( field ).getValue() );
                 }
             }
         }
@@ -397,12 +411,45 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     @Override
     public IngridHitDetail[] getDetails(IngridHit[] hits, IngridQuery ingridQuery, String[] requestedFields) {
+        String fromIndex = null;
+        String fromType = null;
+        List<IngridHitDetail> details = new ArrayList<IngridHitDetail>();
         for (int i = 0; i < requestedFields.length; i++) {
             requestedFields[i] = requestedFields[i].toLowerCase();
         }
-        List<IngridHitDetail> details = new ArrayList<>();
+        BoolQueryBuilder query = QueryBuilders
+                .boolQuery()
+                .must( queryConverter.convert( ingridQuery ) );
+
         for (IngridHit hit : hits) {
-            details.add( getDetail( hit, ingridQuery, requestedFields ) );
+            String documentId = hit.getDocumentId();
+            fromIndex = hit.getString( ELASTIC_SEARCH_INDEX );
+            fromType = hit.getString( ELASTIC_SEARCH_INDEX_TYPE );
+            query.should(QueryBuilders.matchQuery(IngridDocument.DOCUMENT_UID, documentId));
+        }
+        if (fromIndex != null && fromType != null) {
+            // search prepare
+            SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex )
+                    .setTypes( fromType )
+                    .setSearchType( SearchType.DEFAULT )
+                    .setQuery( query ) // Query
+                    .setFrom( 0 )
+                    .setSize( hits.length )
+                    .storedFields( requestedFields )
+                    .setExplain( false );
+
+            if(Arrays.stream(requestedFields).anyMatch(config.indexFieldSummary::equals)) {
+                srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary) );
+            }
+            SearchResponse searchResponse = srb.execute().actionGet();
+
+            SearchHits dHits = searchResponse.getHits();
+            for (int i = 0; i < hits.length; i++) {
+                IngridHit hit = hits[i];
+                SearchHit dHit = dHits.getAt(i);
+                details.add( createDetail(hit, dHit, requestedFields) );
+
+            }
         }
         return details.toArray( new IngridHitDetail[0] );
     }
