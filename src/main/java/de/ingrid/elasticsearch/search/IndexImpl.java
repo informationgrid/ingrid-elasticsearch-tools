@@ -318,7 +318,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         SearchHits dHits = searchResponse.getHits();
         SearchHit dHit = dHits.getAt( 0 );
-        return createDetail(hit, dHits.getAt( 0 ), requestedFields);
+        return createDetail(hit, dHits.getAt( 0 ), allFields);
     }
 
     private void addPlugDescriptionInformations(IngridHitDetail detail, String[] fields) {
