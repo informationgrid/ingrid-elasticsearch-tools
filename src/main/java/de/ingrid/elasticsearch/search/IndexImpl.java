@@ -138,7 +138,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         IndexInfo[] indexInfos = this.config.activeIndices;
         
         if (indexInfos.length == 0) {
-            log.warn( "No configured index to search on!" );
+            log.debug( "No configured index to search on!" );
             return new IngridHits( 0, new IngridHit[0] );
         }
         
