@@ -28,7 +28,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -50,7 +51,7 @@ import de.ingrid.utils.query.IngridQuery;
 @Service
 public class FieldQueryIGCConverter implements IQueryParsers {
     
-    private final static Logger log = Logger.getLogger( FieldQueryIGCConverter.class );
+    private final static Logger log = LogManager.getLogger( FieldQueryIGCConverter.class );
     
     @Override
     @SuppressWarnings("unchecked")
@@ -58,12 +59,12 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         FieldQuery[] fields = ingridQuery.getFields();
 
         
-        Map<String,Object> geoMap = new HashMap<String,Object>(fields.length);
-        Map<String,Object> timeMap = new HashMap<String,Object>(fields.length);
+        Map<String,Object> geoMap = new HashMap<>(fields.length);
+        Map<String,Object> timeMap = new HashMap<>(fields.length);
         
         BoolQueryBuilder bq = null;
         for (FieldQuery fieldQuery : fields) {
-            QueryBuilder subQuery = null;
+            QueryBuilder subQuery;
             
             String indexField = fieldQuery.getFieldName();
             String value = fieldQuery.getFieldValue().toLowerCase();
@@ -82,7 +83,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             } else if (indexField.equals("coord")) {
                 List<String> list = (List<String>) geoMap.get(indexField);
                 if (list == null) {
-                    list = new LinkedList<String>();
+                    list = new LinkedList<>();
                 }
                 list.add(value);
                 geoMap.put(indexField, list);
@@ -99,7 +100,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             } else if ("time".equals(indexField)) {
                 List<String> list = (List<String>) timeMap.get(indexField);
                 if (list == null) {
-                    list = new LinkedList<String>();
+                    list = new LinkedList<>();
                 }
                 list.add(value);
                 timeMap.put(indexField, list);
@@ -126,7 +127,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         }
         
         if (null == geoMap.get("coord")) {
-            final List<String> list = new LinkedList<String>();
+            final List<String> list = new LinkedList<>();
             list.add("exact");
             geoMap.put("coord", list);
         }
@@ -140,9 +141,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         List<String> list = (List<String>) geoMap.get("coord");
         if (list != null) {
 //            BooleanQuery.setMaxClauseCount(10240);
-            Iterator<String> iterator = list.iterator();
-            while (iterator.hasNext()) {
-                String value = iterator.next();
+            for (String value : list) {
                 if ("inside".equals(value)) {
                     // innerhalb
                     prepareInsideGeoQuery(booleanQuery, geoMap);
@@ -294,9 +293,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             // nothing selected -> default inside
             prepareInsideTime(query, timeMap);
         } else {
-            Iterator<String> iterator = list.iterator();
-            while (iterator.hasNext()) {
-                String value = iterator.next();
+            for (String value : list) {
                 if ("intersect".equals(value)) {
                     // innerhalb oder schneidet
                     prepareInsideOrIntersectTime(query, timeMap);

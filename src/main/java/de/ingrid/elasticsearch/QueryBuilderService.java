@@ -22,17 +22,12 @@
  */
 package de.ingrid.elasticsearch;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryStringQueryBuilder;
-import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.index.query.TypeQueryBuilder;
+import org.elasticsearch.index.query.*;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class QueryBuilderService {
@@ -71,7 +66,7 @@ public class QueryBuilderService {
         return boolQuery;
     }
 
-    public BoolQueryBuilder buildIndexTypeMust(String index, String type) {
+    private BoolQueryBuilder buildIndexTypeMust(String index, String type) {
         TermQueryBuilder indexQuery = QueryBuilders.termQuery( "_index", index );
         TypeQueryBuilder typeQuery = QueryBuilders.typeQuery( type );
 
@@ -83,7 +78,7 @@ public class QueryBuilderService {
         return boolQuery;
     }
 
-    public BoolQueryBuilder createQueryWithFilter(String query, BoolQueryBuilder indexTypeFilter) {
+    /*private BoolQueryBuilder createQueryWithFilter(String query, BoolQueryBuilder indexTypeFilter) {
         QueryStringQueryBuilder queryStringQuery = QueryBuilders.queryStringQuery( query.trim().length() == 0 ? "*" : query );
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> must = boolQuery.must();
@@ -91,5 +86,5 @@ public class QueryBuilderService {
         must.add( QueryBuilders.boolQuery().should(indexTypeFilter) );
 
         return boolQuery;
-    }
+    }*/
 }

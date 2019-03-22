@@ -1,23 +1,24 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>de.ingrid</groupId>
     <artifactId>ingrid-base-pom</artifactId>
-    <version>4.2.2</version>
+    <version>5.0.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-
   <artifactId>ingrid-elasticsearch-tools</artifactId>
-  <version>4.5.0-SNAPSHOT</version>
+  <version>5.0.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-
   <name>InGrid Elasticsearch Tools</name>
-  
+
+  <!-- ==================== Source Code Management ==================== -->
   <scm>
     <connection>scm:git:git@github.com:informationgrid/ingrid-elasticsearch-tools.git</connection>
     <developerConnection>scm:git:git@github.com:informationgrid/ingrid-elasticsearch-tools.git</developerConnection>
-      <tag>HEAD</tag>
+    <tag>HEAD</tag>
   </scm>
-  
+
+  <!-- ==================== REPOSITORIES ==================== -->
   <repositories>
     <!-- Repo of parent pom needed, parent pom may not be installed locally yet -->
     <repository>
@@ -27,20 +28,27 @@
     </repository>
   </repositories>
 
+  <!-- ==================== PROPERTIES ==================== -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <elastic.version>6.2.4</elastic.version>
+    <elastic.version>6.4.2</elastic.version>
     <spring.version>4.3.11.RELEASE</spring.version>
   </properties>
 
+  <!-- ==================== DEPENDENCIES ==================== -->
   <dependencies>
-  
     <dependency>
-        <groupId>de.ingrid</groupId>
-        <artifactId>ingrid-utils</artifactId>
-        <version>4.2.2</version>
+      <groupId>de.ingrid</groupId>
+      <artifactId>ingrid-utils</artifactId>
+      <version>5.0.0-SNAPSHOT</version>
     </dependency>
-    
+
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.8.2</version>
+    </dependency>
+
     <!-- Elasticsearch -->
     <dependency>
       <groupId>org.elasticsearch</groupId>
@@ -48,28 +56,28 @@
       <version>${elastic.version}</version>
     </dependency>
     <dependency>
-        <groupId>org.elasticsearch.client</groupId>
-        <artifactId>transport</artifactId>
-        <version>${elastic.version}</version>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>transport</artifactId>
+      <version>${elastic.version}</version>
     </dependency>
-    <dependency>
+    <!--<dependency>
       <groupId>org.elasticsearch.plugin</groupId>
       <artifactId>transport-netty4-client</artifactId>
       <version>${elastic.version}</version>
-    </dependency>
+    </dependency>-->
     <!--<dependency>
         <groupId>org.elasticsearch.client</groupId>
         <artifactId>elasticsearch-rest-high-level-client</artifactId>
         <version>${elastic.version}</version>
     </dependency>-->
-    
+
     <!-- Spring -->
     <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-context</artifactId>
-        <version>${spring.version}</version>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+      <version>${spring.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -79,12 +87,16 @@
     <dependency>
       <groupId>de.ingrid</groupId>
       <artifactId>ingrid-ibus-client</artifactId>
-      <version>3.6.2</version>
+      <version>5.0.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
-  
+
+  <!-- ==================== Build Configuration ==================== -->
   <build>
     <plugins>
+      <!--
+        This plugin configures the git-flow for this project
+      -->
       <plugin>
         <groupId>external.atlassian.jgitflow</groupId>
         <artifactId>jgitflow-maven-plugin</artifactId>

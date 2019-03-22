@@ -56,7 +56,7 @@ public class FacetDefinition {
     public FacetDefinition(String facetName, String field) {
         this.name = facetName;
         this.field = field;
-        this.classes = new ArrayList<FacetClassDefinition>();
+        this.classes = new ArrayList<>();
     }
 
     public Boolean hasFacetClass(String clazz) {

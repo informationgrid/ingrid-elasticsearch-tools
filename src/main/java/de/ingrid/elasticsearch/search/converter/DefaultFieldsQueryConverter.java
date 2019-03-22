@@ -25,12 +25,8 @@ package de.ingrid.elasticsearch.search.converter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type;
-import org.elasticsearch.index.query.Operator;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -56,11 +52,11 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
         BoolQueryBuilder bq = null;//QueryBuilders.boolQuery();
         
         if (terms.length > 0) {
-            List<String> termsAnd = new ArrayList<String>();
-            List<String> termsOr = new ArrayList<String>();
+            List<String> termsAnd = new ArrayList<>();
+            List<String> termsOr = new ArrayList<>();
             for (TermQuery term : terms) {
                 String t = term.getTerm();
-                QueryBuilder subQuery = null;
+                QueryBuilder subQuery;
 
                 // if it's a phrase
                 if (t.contains( " " )) {
@@ -117,7 +113,7 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
             
             if (!termsAnd.isEmpty()) {
                 String join = String.join( " ", termsAnd );
-                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, defaultFields ).operator( Operator.AND ).type( Type.CROSS_FIELDS );
+                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, defaultFields ).operator(Operator.AND).type( Type.CROSS_FIELDS );
                 if (bq == null) bq = QueryBuilders.boolQuery();
                 bq.should( subQuery );
             }

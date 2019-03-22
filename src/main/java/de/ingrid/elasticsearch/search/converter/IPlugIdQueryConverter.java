@@ -1,6 +1,6 @@
 /*
  * **************************************************-
- * ingrid-search-utils
+ * ingrid-iplug-se-iplug
  * ==================================================
  * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
  * ==================================================
@@ -20,13 +20,35 @@
  * limitations under the Licence.
  * **************************************************#
  */
-package de.ingrid.elasticsearch.search;
+package de.ingrid.elasticsearch.search.converter;
 
-import org.elasticsearch.index.query.BoolQueryBuilder;
+import de.ingrid.elasticsearch.search.IQueryParsers;
+import de.ingrid.utils.query.FieldQuery;
 import de.ingrid.utils.query.IngridQuery;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.springframework.stereotype.Service;
 
-public interface IQueryParsers {
-
-    void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder);
+@Service
+public class IPlugIdQueryConverter implements IQueryParsers {
     
+    @Override
+    public void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder) {
+        String[] iplugs = ingridQuery.getIPlugs();
+
+        BoolQueryBuilder bq = null;
+        
+        for (String iplug : iplugs) {
+
+            QueryBuilder subQuery = QueryBuilders.termQuery("iPlugId", iplug);
+
+            if (bq == null) bq = QueryBuilders.boolQuery();
+            bq.must(subQuery);
+
+            queryBuilder.must(bq);
+
+        }
+    }
+
 }

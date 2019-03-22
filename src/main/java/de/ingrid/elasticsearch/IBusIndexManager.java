@@ -28,7 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.ibus.client.BusClient;
@@ -44,7 +45,7 @@ import de.ingrid.utils.xml.XMLSerializer;
 @Service
 public class IBusIndexManager implements IConfigurable, IIndexManager {
 
-    private static final Logger log = Logger.getLogger(IBusIndexManager.class);
+    private static final Logger log = LogManager.getLogger(IBusIndexManager.class);
     
     private IBus _ibus;
     
@@ -71,7 +72,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridCall call = new IngridCall();
         call.setMethod( "getIndexNameFromAliasName" );
         call.setTarget( "__centralIndex__" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         map.put( "indexAlias", indexAlias );
         map.put( "partialName", partialName );
         call.setParameter( map );
@@ -89,7 +90,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     public boolean createIndex(String name) {
         
         IngridCall call = prepareCall( "createIndex" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         InputStream mappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
         map.put( "name", name );
         try {
@@ -111,13 +112,14 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public boolean createIndex(String name, String type, String source) {
+    public boolean createIndex(String name, String type, String esMapping, String esSettings) {
         IngridCall call = prepareCall( "createIndex" );
         Map<String,String> map = new HashMap<>();
         map.put( "name", name );
         map.put( "type", type );
-        map.put( "source", source );
-        call.setParameter( name );
+        map.put( "esMapping", esMapping );
+        map.put( "esSettings", esSettings );
+        call.setParameter( map );
         
         try {
             IngridDocument response = getIBus().call( call );
@@ -131,7 +133,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     @Override
     public void switchAlias(String aliasName, String oldIndex, String newIndex) {
         IngridCall call = prepareCall( "switchAlias" );
-        Map<String,String> map = new HashMap<String, String>();
+        Map<String,String> map = new HashMap<>();
         map.put( "aliasName", aliasName );
         map.put( "oldIndex", oldIndex );
         map.put( "newIndex", newIndex );
@@ -234,6 +236,32 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
             return (Map<String, Object>) response.get( "result" );
         } catch (Exception e) {
             log.error( "Error relaying index message: getMapping", e );
+        }
+        return null;
+    }
+
+    @Override
+    public String getDefaultMapping() {
+        InputStream mappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
+        try {
+            if (mappingStream != null) {
+                return XMLSerializer.getContents( mappingStream );
+            }
+        } catch (IOException e) {
+            log.error( "Error getting default mapping for index creation", e );
+        }
+        return null;
+    }
+
+    @Override
+    public String getDefaultSettings() {
+        InputStream settingsStream = getClass().getClassLoader().getResourceAsStream( "default-settings.json" );
+        try {
+            if (settingsStream != null) {
+                return XMLSerializer.getContents( settingsStream );
+            }
+        } catch (IOException e) {
+            log.error( "Error getting default mapping for index creation", e );
         }
         return null;
     }

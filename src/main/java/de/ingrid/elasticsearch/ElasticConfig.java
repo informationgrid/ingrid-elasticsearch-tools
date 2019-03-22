@@ -28,11 +28,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class ElasticConfig {
 
+    @Value("${iplug.uuid:}")
+    public String uuid;
+
     @Value("${elastic.enabled:true}")
     public boolean isEnabled;
-    
-    @Value("${elastic.isRemote:true}")
-    public boolean isRemote;
     
     @Value("${elastic.remoteHosts:localhost:9300}")
     public String[] remoteHosts;
@@ -40,7 +40,7 @@ public class ElasticConfig {
     @Value("${elastic.indexWithAutoId:true}")
     public boolean indexWithAutoId;
     
-    @Value("${elastic.indexSearchDefaultFields:}")
+    @Value("${elastic.indexSearchDefaultFields:title,content}")
     public String[] indexSearchDefaultFields;
 
     @Value("${elastic.boostField:boost}")
