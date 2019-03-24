@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.ibus.client.BusClient;
@@ -48,7 +49,10 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     private static final Logger log = LogManager.getLogger(IBusIndexManager.class);
     
     private IBus _ibus;
-    
+
+    @Autowired
+    private ElasticConfig _config;
+
     public IBusIndexManager() {
         
     }
@@ -159,16 +163,10 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     @Override
     public String getIndexTypeIdentifier(IndexInfo indexInfo) {
-        IngridCall call = prepareCall( "getIndexTypeIdentifier" );
-        call.setParameter( indexInfo );
-        
-        try {
-            IngridDocument response = getIBus().call( call );
-            return response.getString( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: getIndexTypeIdentifier", e );
-        }
-        return null;
+        String componentIdentifier = indexInfo.getComponentIdentifier();
+        if (componentIdentifier == null) componentIdentifier = _config.communicationProxyUrl;
+        String clientId = componentIdentifier.replace( "/", "" );
+        return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
     }
 
     @Override
