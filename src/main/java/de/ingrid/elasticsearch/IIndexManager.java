@@ -59,4 +59,6 @@ public interface IIndexManager {
     void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
     
     void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);
+
+    boolean indexExists(String indexName);
 }

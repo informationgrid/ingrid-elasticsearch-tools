@@ -25,6 +25,7 @@ package de.ingrid.elasticsearch;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -44,10 +45,10 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     private static final Logger log = LogManager.getLogger(IBusIndexManager.class);
     
-    private IBus _ibus;
+    private List<IBus> iBusses;
 
     @Autowired
-    private ElasticConfig _config;
+    private ElasticConfig config;
 
     public IBusIndexManager() {
         
@@ -56,15 +57,15 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     @Override
     public void configure(PlugDescription plugDescription) {
         BusClient busClient = BusClientFactory.getBusClient();
-        _ibus = busClient.getNonCacheableIBus();
+        iBusses = busClient.getNonCacheableIBusses();
     }
     
-    private IBus getIBus() {
-        if (_ibus == null) {
+    private List<IBus> getIBusses() {
+        if (iBusses == null) {
             BusClient busClient = BusClientFactory.getBusClient();
-            _ibus = busClient.getNonCacheableIBus();
+            iBusses = busClient.getNonCacheableIBusses();
         }
-        return _ibus;
+        return iBusses;
     }
 
     @Override
@@ -77,15 +78,10 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "partialName", partialName );
         call.setParameter( map );
         
-        try {
-            IngridDocument response = getIBus().call( call );
-            return response.getString( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: getIndexNameFromAliasName", e );
-        }
-        return null;
+        IngridDocument response = sendCallToIBusses(call);
+        return response.getString( "result" );
     }
-    
+
     @Override
     public boolean createIndex(String name) {
         
@@ -102,13 +98,8 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         
         call.setParameter( map );
         
-        try {
-            IngridDocument response = getIBus().call( call );
-            return response.getBoolean( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: createIndex", e );
-        }
-        return false;
+        IngridDocument response = sendCallToIBusses(call);
+        return response.getBoolean( "result" );
     }
 
     @Override
@@ -121,13 +112,8 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "esSettings", esSettings );
         call.setParameter( map );
         
-        try {
-            IngridDocument response = getIBus().call( call );
-            return response.getBoolean( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: createIndex", e );
-        }
-        return false;
+        IngridDocument response = sendCallToIBusses(call);
+        return response.getBoolean( "result" );
     }
 
     @Override
@@ -139,28 +125,20 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "newIndex", newIndex );
         call.setParameter( map );
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: switchAlias", e );
-        }
+        sendCallToIBusses(call);
     }
 
     @Override
     public void checkAndCreateInformationIndex() {
         IngridCall call = prepareCall( "checkAndCreateInformationIndex" );
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: checkAndCreateInformationIndex", e );
-        }
+        sendCallToIBusses(call);
     }
 
     @Override
     public String getIndexTypeIdentifier(IndexInfo indexInfo) {
         String componentIdentifier = indexInfo.getComponentIdentifier();
-        if (componentIdentifier == null) componentIdentifier = _config.communicationProxyUrl;
+        if (componentIdentifier == null) componentIdentifier = config.communicationProxyUrl;
         String clientId = componentIdentifier.replace( "/", "" );
         return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
     }
@@ -174,11 +152,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "updateOldIndex", updateOldIndex );
         call.setParameter( map );
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: update", e );
-        }
+        sendCallToIBusses(call);
     }
 
     @Override
@@ -189,22 +163,14 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "info", info );
         call.setParameter( map );
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: updateIPlugInformation", e );
-        }
+        sendCallToIBusses(call);
     }
 
     @Override
     public void flush() {
         IngridCall call = prepareCall( "flush" );
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: flush", e );
-        }
+        sendCallToIBusses(call);
     }
 
     @Override
@@ -212,11 +178,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridCall call = prepareCall( "deleteIndex" );
         call.setParameter( index );
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: deleteIndex", e );
-        }
+        sendCallToIBusses(call);
     }
 
     @SuppressWarnings("unchecked")
@@ -225,13 +187,8 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridCall call = prepareCall( "getMapping" );
         call.setParameter( indexInfo );
         
-        try {
-            IngridDocument response = getIBus().call( call );
-            return (Map<String, Object>) response.get( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: getMapping", e );
-        }
-        return null;
+        IngridDocument response = sendCallToIBusses(call);
+        return (Map<String, Object>) response.get( "result" );
     }
 
     @Override
@@ -265,29 +222,22 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridCall call = prepareCall( "updateHearbeatInformation" );
         call.setParameter(iPlugIdInfos);
         
-        try {
-            getIBus().call( call );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: updateHearbeatInformation", e );
-        }
-    }
-    
-    /**
-     * Simplify creation of IngridCall object.
-     * @param method
-     * @return
-     */
-    private IngridCall prepareCall(String method) {
-        IngridCall call = new IngridCall();
-        call.setTarget( "__centralIndex__" );
-        call.setMethod( method );
-        return call;
+        sendCallToIBusses(call);
     }
 
 	@Override
 	public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex) {
 		log.error("Operation 'delete' not implemented yet!");
 	}
+
+    @Override
+    public boolean indexExists(String indexName) {
+        IngridCall call = prepareCall( "indexExists" );
+        call.setParameter(indexName);
+
+        IngridDocument response = sendCallToIBusses(call);
+        return (boolean) response.get( "result" );
+    }
 
     public IngridHits search(IngridQuery query, int start, int length) {
         IngridCall call = prepareCall( "search" );
@@ -298,13 +248,8 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "length", length );
         call.setParameter( map );
 
-        try {
-            IngridDocument response = getIBus().call( call );
-            return (IngridHits) response.get( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: search", e );
-        }
-        return null;
+        IngridDocument response = sendCallToIBusses(call);
+        return (IngridHits) response.get( "result" );
     }
 
     public IngridHitDetail getDetail(IngridHit hit, IngridQuery query, String[] fields) {
@@ -316,13 +261,8 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "fields", fields );
         call.setParameter( map );
 
-        try {
-            IngridDocument response = getIBus().call( call );
-            return (IngridHitDetail) response.get( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: search", e );
-        }
-        return null;
+        IngridDocument response = sendCallToIBusses(call);
+        return (IngridHitDetail) response.get( "result" );
     }
 
     public IngridHitDetail[] getDetails(IngridHit[] hits, IngridQuery query, String[] fields) {
@@ -334,12 +274,38 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         map.put( "fields", fields );
         call.setParameter( map );
 
-        try {
-            IngridDocument response = getIBus().call( call );
-            return (IngridHitDetail[]) response.get( "result" );
-        } catch (Exception e) {
-            log.error( "Error relaying index message: search", e );
+        IngridDocument response = sendCallToIBusses(call);
+        return (IngridHitDetail[]) response.get( "result" );
+    }
+
+    private IngridDocument sendCallToIBusses(IngridCall call) {
+
+        IngridDocument response = null;
+        for ( IBus ibus : getIBusses()) {
+            try {
+                IngridDocument currentResponse = ibus.call( call );
+                if (response == null) {
+                    response = currentResponse;
+                }
+            } catch (Exception e) {
+                log.error( "Error relaying index message: " + call.getMethod(), e );
+            }
         }
-        return null;
+        return response;
+
+    }
+
+    /**
+     * Simplify creation of IngridCall object.
+     * @param method
+     * @return
+     */
+    private IngridCall prepareCall(String method) {
+
+        IngridCall call = new IngridCall();
+        call.setTarget( "__centralIndex__" );
+        call.setMethod( method );
+        return call;
+
     }
 }
