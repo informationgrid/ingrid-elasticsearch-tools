@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import de.ingrid.utils.*;
+import de.ingrid.utils.query.IngridQuery;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,12 +37,6 @@ import org.springframework.stereotype.Service;
 
 import de.ingrid.ibus.client.BusClient;
 import de.ingrid.ibus.client.BusClientFactory;
-import de.ingrid.utils.ElasticDocument;
-import de.ingrid.utils.IBus;
-import de.ingrid.utils.IConfigurable;
-import de.ingrid.utils.IngridCall;
-import de.ingrid.utils.IngridDocument;
-import de.ingrid.utils.PlugDescription;
 import de.ingrid.utils.xml.XMLSerializer;
 
 @Service
@@ -293,4 +289,57 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 		log.error("Operation 'delete' not implemented yet!");
 	}
 
+    public IngridHits search(IngridQuery query, int start, int length) {
+        IngridCall call = prepareCall( "search" );
+
+        Map<String, Object> map = new HashMap<>();
+        map.put( "query", query );
+        map.put( "start", start );
+        map.put( "length", length );
+        call.setParameter( map );
+
+        try {
+            IngridDocument response = getIBus().call( call );
+            return (IngridHits) response.get( "result" );
+        } catch (Exception e) {
+            log.error( "Error relaying index message: search", e );
+        }
+        return null;
+    }
+
+    public IngridHitDetail getDetail(IngridHit hit, IngridQuery query, String[] fields) {
+        IngridCall call = prepareCall( "getDetail" );
+
+        Map<String, Object> map = new HashMap<>();
+        map.put( "hit", hit );
+        map.put( "query", query );
+        map.put( "fields", fields );
+        call.setParameter( map );
+
+        try {
+            IngridDocument response = getIBus().call( call );
+            return (IngridHitDetail) response.get( "result" );
+        } catch (Exception e) {
+            log.error( "Error relaying index message: search", e );
+        }
+        return null;
+    }
+
+    public IngridHitDetail[] getDetails(IngridHit[] hits, IngridQuery query, String[] fields) {
+        IngridCall call = prepareCall( "getDetails" );
+
+        Map<String, Object> map = new HashMap<>();
+        map.put( "hits", hits );
+        map.put( "query", query );
+        map.put( "fields", fields );
+        call.setParameter( map );
+
+        try {
+            IngridDocument response = getIBus().call( call );
+            return (IngridHitDetail[]) response.get( "result" );
+        } catch (Exception e) {
+            log.error( "Error relaying index message: search", e );
+        }
+        return null;
+    }
 }
