@@ -226,7 +226,14 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
 	@Override
 	public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex) {
-		log.error("Operation 'delete' not implemented yet!");
+        IngridCall call = prepareCall( "deleteDocById" );
+        Map<String, Object> map = new HashMap<>();
+        map.put( "indexinfo", indexinfo );
+        map.put( "id", id );
+        map.put( "updateOldIndex", updateOldIndex );
+        call.setParameter( map );
+
+        sendCallToIBusses(call);
 	}
 
     @Override
