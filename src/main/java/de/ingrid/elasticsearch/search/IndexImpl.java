@@ -33,10 +33,12 @@ import de.ingrid.utils.dsc.Record;
 import de.ingrid.utils.query.IngridQuery;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.search.SearchPhaseExecutionException;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -49,7 +51,10 @@ import org.springframework.stereotype.Component;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Component
@@ -80,15 +85,15 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         this.config = config;
         this.queryBuilderService = queryBuilderService;
 
-        detailFields = Stream.concat( 
+        detailFields = Stream.concat(
                 Arrays.stream( new String[] {
-                        PlugDescription.PARTNER, 
-                        PlugDescription.PROVIDER, 
-                        "datatype", 
+                        PlugDescription.PARTNER,
+                        PlugDescription.PROVIDER,
+                        "datatype",
                         PlugDescription.DATA_SOURCE_NAME } ),
                 Arrays.stream( config.additionalSearchDetailFields ) )
             .toArray(String[]::new);
-        
+
         try {
             this.queryConverter = qc;
             this.facetConverter = fc;
@@ -472,32 +477,11 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
     }
 
-    public ElasticDocument getDocById(Object id) {
-        String idAsString = String.valueOf( id );
-        IndexInfo[] indexNames = this.config.activeIndices;
-        // iterate over all indices until document was found
-        for (IndexInfo indexName : indexNames) {
-            try {
-                Map<String, Object> source = indexManager.getClient().prepareGet( indexName.getRealIndexName(), null, idAsString )
-                        .setFetchSource( config.indexFieldsIncluded, config.indexFieldsExcluded )
-                        .execute().actionGet().getSource();
-                
-                if (source != null) {
-                    return new ElasticDocument( source );
-                }
-            } catch(IndexNotFoundException ex) {
-                log.warn( "Index was not found. We probably have to clean up or refresh the active indices here. Missing index is: " + indexName.getToAlias() );
-            }
-        }
-
-        return null;
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public Record getRecord(IngridHit hit) {
         String documentId = hit.getDocumentId();
-        ElasticDocument document = getDocById( documentId );
+        ElasticDocument document = indexManager.getDocById( documentId );
         String[] fields = document.keySet().toArray( new String[0] );
         Record record = new Record();
         for (String name : fields) {

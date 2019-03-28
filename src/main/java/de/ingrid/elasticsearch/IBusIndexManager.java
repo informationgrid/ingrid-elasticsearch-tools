@@ -47,11 +47,10 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     
     private List<IBus> iBusses;
 
-    @Autowired
-    private ElasticConfig config;
+    private final ElasticConfig config;
 
-    public IBusIndexManager() {
-        
+    public IBusIndexManager(ElasticConfig config) {
+        this.config = config;
     }
             
     @Override
@@ -307,5 +306,13 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         call.setMethod( method );
         return call;
 
+    }
+
+    public ElasticDocument getDocById(String documentId) {
+        IngridCall call = prepareCall( "getDocById" );
+        call.setParameter(documentId);
+
+        IngridDocument response = sendCallToIBusses(call);
+        return (ElasticDocument) response.get( "result" );
     }
 }

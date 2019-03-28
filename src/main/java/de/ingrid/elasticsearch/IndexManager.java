@@ -537,5 +537,26 @@ public class IndexManager implements IIndexManager {
             return name.substring( 0, delimiterPos + 1 ) + date;
         }
     }
+
+    public ElasticDocument getDocById(Object id) {
+        String idAsString = String.valueOf( id );
+        IndexInfo[] indexNames = _config.activeIndices;
+        // iterate over all indices until document was found
+        for (IndexInfo indexName : indexNames) {
+            try {
+                Map<String, Object> source = this.getClient().prepareGet( indexName.getRealIndexName(), null, idAsString )
+                        .setFetchSource( _config.indexFieldsIncluded, _config.indexFieldsExcluded )
+                        .execute().actionGet().getSource();
+
+                if (source != null) {
+                    return new ElasticDocument( source );
+                }
+            } catch(IndexNotFoundException ex) {
+                log.warn( "Index was not found. We probably have to clean up or refresh the active indices here. Missing index is: " + indexName.getToAlias() );
+            }
+        }
+
+        return null;
+    }
     
 }
