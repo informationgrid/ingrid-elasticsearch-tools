@@ -161,7 +161,11 @@ public class IndexManager implements IIndexManager {
         return new BulkProcessor.Listener() {
 
             public void beforeBulk(long executionId, BulkRequest request) {}
-            public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {}
+            public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
+                if (response.hasFailures()) {
+                    log.error("Bulk to Elasticsearch had failures: " + response.buildFailureMessage());
+                }
+            }
 
             public void afterBulk(long executionId, BulkRequest request, Throwable t) {
                 log.error( "An error occured during bulk indexing", t );
