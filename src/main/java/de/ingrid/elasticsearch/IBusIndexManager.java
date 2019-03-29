@@ -136,10 +136,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     @Override
     public String getIndexTypeIdentifier(IndexInfo indexInfo) {
-        String componentIdentifier = indexInfo.getComponentIdentifier();
-        if (componentIdentifier == null) componentIdentifier = config.communicationProxyUrl;
-        String clientId = componentIdentifier.replace( "/", "" );
-        return clientId + "=>" + indexInfo.getToAlias() + ":" + indexInfo.getToType();
+        return config.uuid + "=>" + indexInfo.getToIndex() + ":" + indexInfo.getToType();
     }
 
     @Override
