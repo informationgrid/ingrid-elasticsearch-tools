@@ -504,6 +504,8 @@ public class IndexManager implements IIndexManager {
                 updateIPlugInformation(id, iPlugIdInfos.get(id));
             } catch (IndexNotFoundException ex) {
                 log.warn( "Index for iPlug information not found ... creating: " + id );
+            } catch (InterruptedException ex) {
+                log.warn( "updateHearbeatInformation was interrupted for ID: " + id );
             }
         }
     }
