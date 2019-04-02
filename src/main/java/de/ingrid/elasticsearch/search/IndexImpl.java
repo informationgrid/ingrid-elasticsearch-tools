@@ -416,6 +416,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     @Override
     public IngridHitDetail[] getDetails(IngridHit[] hits, IngridQuery ingridQuery, String[] requestedFields) {
+        // TODO: use this optimization for fewer requests, especially when requesting map markers
         /*String fromIndex = null;
         String fromType = null;
         List<IngridHitDetail> details = new ArrayList<>();
