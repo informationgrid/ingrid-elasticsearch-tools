@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-iplug-se-iplug
  * ==================================================
- * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -54,7 +54,7 @@ public class FacetConverter {
     private static Log log = LogFactory.getLog( FacetConverter.class );
     
     @Autowired(required=false)
-    private List<IFacetDefinitionProcessor> facetDefinitionProcessors = new ArrayList<IFacetDefinitionProcessor>();
+    private List<IFacetDefinitionProcessor> facetDefinitionProcessors = new ArrayList<>();
 
     private QueryConverter queryConverter;
     
@@ -73,13 +73,13 @@ public class FacetConverter {
             facetdefProcessor.process(defs);
         }
         
-        List<AbstractAggregationBuilder> aggregations = new ArrayList<AbstractAggregationBuilder>();
+        List<AbstractAggregationBuilder> aggregations = new ArrayList<>();
         
         for (FacetDefinition facetDefinition : defs) {
             String name = facetDefinition.getName();
             String field = facetDefinition.getField();
             List<FacetClassDefinition> classes = facetDefinition.getClasses();
-            AbstractAggregationBuilder aggr = null;
+            AbstractAggregationBuilder aggr;
             if (classes != null) {
                 for (FacetClassDefinition fClass : classes) {
                     IngridQuery facetQuery;
@@ -88,8 +88,7 @@ public class FacetConverter {
                         aggr = AggregationBuilders.filter( fClass.getName(), queryConverter.convert( facetQuery ) );
                         aggregations.add( aggr );
                     } catch (ParseException e) {
-                        log.error( "Error during parsing facets." );
-                        e.printStackTrace();
+                        log.error( "Error during parsing facets", e );
                     }
                 }
                 

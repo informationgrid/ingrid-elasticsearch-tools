@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-search-utils
  * ==================================================
- * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -27,6 +27,6 @@ import de.ingrid.utils.query.IngridQuery;
 
 public interface IQueryParsers {
 
-    public void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder);
+    void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder);
     
 }

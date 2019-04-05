@@ -2,7 +2,7 @@
  * **************************************************-
  * InGrid Elasticsearch Tools
  * ==================================================
- * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -28,11 +28,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class ElasticConfig {
 
+    @Value("${iplug.uuid:}")
+    public String uuid;
+
     @Value("${elastic.enabled:true}")
     public boolean isEnabled;
-    
-    @Value("${elastic.isRemote:true}")
-    public boolean isRemote;
     
     @Value("${elastic.remoteHosts:localhost:9300}")
     public String[] remoteHosts;
@@ -40,7 +40,7 @@ public class ElasticConfig {
     @Value("${elastic.indexWithAutoId:true}")
     public boolean indexWithAutoId;
     
-    @Value("${elastic.indexSearchDefaultFields:}")
+    @Value("${elastic.indexSearchDefaultFields:title,content}")
     public String[] indexSearchDefaultFields;
 
     @Value("${elastic.boostField:boost}")
@@ -55,13 +55,13 @@ public class ElasticConfig {
     @Value("${elastic.boostMode:}")
     public String boostMode;
 
-    @Value("${index.field.title:}")
+    @Value("${index.field.title:title}")
     public String indexFieldTitle;
 
     @Value("${index.search.additional.detail.fields:}")
     public String[] additionalSearchDetailFields;
 
-    @Value("${index.field.summary:}")
+    @Value("${index.field.summary:summary}")
     public String indexFieldSummary;
 
     
@@ -87,9 +87,7 @@ public class ElasticConfig {
     @Value("${index.fields.exclude:}")
     public String indexFieldsExcluded;
 
-    // public String[] docProducerIndices;
-
-    @Value("${elastic.communication.ibus:false}")
+    @Value("${elastic.communication.ibus:true}")
     public boolean esCommunicationThroughIBus;
 
     public IndexInfo[] activeIndices;

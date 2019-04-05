@@ -2,7 +2,7 @@
  * **************************************************-
  * InGrid Elasticsearch Tools
  * ==================================================
- * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -30,29 +30,35 @@ import de.ingrid.utils.ElasticDocument;
 
 public interface IIndexManager {
 
-    public String getIndexNameFromAliasName(String indexAlias, String partialName);
+    String getIndexNameFromAliasName(String indexAlias, String partialName);
     
-    public boolean createIndex(String name);
+    boolean createIndex(String name);
     
-    public boolean createIndex(String name, String type, String source);
+    boolean createIndex(String name, String type, String esMapping, String esSettings);
     
-    public void switchAlias(String aliasName, String oldIndex, String newIndex);
+    void switchAlias(String aliasName, String oldIndex, String newIndex);
     
-    public void checkAndCreateInformationIndex();
+    void checkAndCreateInformationIndex();
     
-    public String getIndexTypeIdentifier(IndexInfo indexInfo);
+    String getIndexTypeIdentifier(IndexInfo indexInfo);
     
-    public void update(IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex);
+    void update(IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex);
     
-    public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException;
+    void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException;
     
-    public void flush();
+    void flush();
     
-    public void deleteIndex(String index);
+    void deleteIndex(String index);
     
-    public Map<String, Object> getMapping(IndexInfo indexInfo);
+    Map<String, Object> getMapping(IndexInfo indexInfo);
+
+    String getDefaultMapping();
+
+    String getDefaultSettings();
+
+    void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
     
-    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
-    
-    public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);
+    void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);
+
+    boolean indexExists(String indexName);
 }

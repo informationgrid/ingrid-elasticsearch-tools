@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-iplug-se-iplug
  * ==================================================
- * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -45,7 +45,7 @@ public class DatatypePartnerProviderQueryConverter implements IQueryParsers {
         final List<FieldQuery> provider = (List<FieldQuery>)(List<?>)ingridQuery.getArrayList( IngridQuery.PROVIDER );
         
         // concatenate all fields
-        List<FieldQuery> allFields = new ArrayList<FieldQuery>();
+        List<FieldQuery> allFields = new ArrayList<>();
         if (dataTypes != null) allFields.addAll( dataTypes );
         if (partner != null) allFields.addAll( partner );
         if (provider != null) allFields.addAll( provider );

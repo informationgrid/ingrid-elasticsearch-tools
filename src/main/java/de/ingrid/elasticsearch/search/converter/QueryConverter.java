@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-iplug-se-iplug
  * ==================================================
- * Copyright (C) 2014 - 2018 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -25,16 +25,16 @@ package de.ingrid.elasticsearch.search.converter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.lucene.search.function.CombineFunction;
 import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction.Modifier;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
-import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder.FilterFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +46,7 @@ import de.ingrid.utils.query.IngridQuery;
 @Service
 public class QueryConverter implements IQueryParsers {
     
-    private static Logger log = Logger.getLogger( QueryConverter.class );
+    private static Logger log = LogManager.getLogger( QueryConverter.class );
     
     @Autowired
     private List<IQueryParsers> _queryConverter;
@@ -55,7 +55,7 @@ public class QueryConverter implements IQueryParsers {
     private ElasticConfig _config;
 
     public QueryConverter() {
-        _queryConverter = new ArrayList<IQueryParsers>();
+        _queryConverter = new ArrayList<>();
     }
 
     public void setQueryParsers(List<IQueryParsers> parsers) {
@@ -114,16 +114,16 @@ public class QueryConverter implements IQueryParsers {
             .factor( _config.boostFactor );
         
         // create the wrapper query to apply the score function to the query
-        FilterFunctionBuilder[] functions = new FilterFunctionBuilder[1];
-        functions[0] = new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc );
+        /*FilterFunctionBuilder[] functions = new FilterFunctionBuilder[1];
+        functions[0] = new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc );*/
         
-        FunctionScoreQueryBuilder funcScoreQuery = new FunctionScoreQueryBuilder( functions );
+        FunctionScoreQueryBuilder funcScoreQuery = new FunctionScoreQueryBuilder( scoreFunc );
         funcScoreQuery.boostMode( getBoostMode(_config.boostMode) );
         return funcScoreQuery;
     }
 
     private Modifier getModifier(String esBoostModifier) {
-        Modifier result = null;
+        Modifier result;
         switch (esBoostModifier) {
         case "LN":
             result = Modifier.LN;
@@ -164,7 +164,7 @@ public class QueryConverter implements IQueryParsers {
     }
 
     private CombineFunction getBoostMode(String esBoostMode) {
-        CombineFunction result = null;
+        CombineFunction result;
         switch (esBoostMode) {
         case "SUM":
             result = CombineFunction.SUM;
