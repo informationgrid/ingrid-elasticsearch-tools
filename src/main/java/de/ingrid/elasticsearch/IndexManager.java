@@ -540,7 +540,7 @@ public class IndexManager implements IIndexManager {
 
         if (isNew) {
             if (!name.contains("@" + uuid)) {
-                return name + "@" + uuid;
+                return name + "@" + uuid + "_" + date;
             }
             return name + "_" + date;
         } else {
