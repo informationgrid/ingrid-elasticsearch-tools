@@ -517,7 +517,7 @@ public class IndexManager implements IIndexManager {
      * @param uuid is a uuid to make this index unique (uuid or name from iPlug)
      * @return a new index name including the current timestamp
      */
-    public static String getNextIndexName(String name, String uuid) {
+    public static String getNextIndexName(String name, String uuid, String uuidName) {
         if (name == null) {
             throw new RuntimeException( "Old index name must not be null!" );
         }
@@ -539,13 +539,13 @@ public class IndexManager implements IIndexManager {
         String date = dateFormat.format( new Date() );
 
         if (isNew) {
-            if (!name.contains("@" + uuid)) {
-                return name + "@" + uuid + "_" + date;
+            if (!name.contains(uuid)) {
+                return name + "@" + uuidName + "-" + uuid + "_" + date;
             }
             return name + "_" + date;
         } else {
-            if (!name.contains("@" + uuid)) {
-                return name.substring( 0, delimiterPos ) + "@" + uuid + "_" + date;
+            if (!name.contains(uuid)) {
+                return name.substring( 0, delimiterPos ) + "@" + uuidName + "-" + uuid + "_" + date;
             }
             return name.substring( 0, delimiterPos + 1 ) + date;
         }
