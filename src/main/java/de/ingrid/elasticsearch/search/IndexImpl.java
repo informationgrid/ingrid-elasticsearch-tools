@@ -46,6 +46,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -167,6 +168,11 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .storedFields("iPlugId")
                 .setFrom( startHit ).setSize( num ).setExplain( false );
 
+        // Add sort by date to ES query if appropriate
+        if (ingridQuery.getRankingType().equals( IngridQuery.DATE_RANKED )) {
+            srb.addSort( "t01_object.mod_time", SortOrder.DESC );
+        }
+        
         if (fields == null) {
             srb = srb.setFetchSource( false );
         } else {
