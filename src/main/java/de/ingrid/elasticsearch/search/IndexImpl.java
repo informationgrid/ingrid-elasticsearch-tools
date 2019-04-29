@@ -169,7 +169,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .setFrom( startHit ).setSize( num ).setExplain( false );
 
         // Add sort by date to ES query if appropriate
-        if (ingridQuery.getRankingType().equals( IngridQuery.DATE_RANKED )) {
+        String rankingType = ingridQuery.getRankingType();
+        if (rankingType != null && rankingType.equals( IngridQuery.DATE_RANKED )) {
             srb.addSort( "t01_object.mod_time", SortOrder.DESC );
         }
         
