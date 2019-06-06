@@ -87,6 +87,11 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridCall call = prepareCall( "createIndex" );
         Map<String,String> map = new HashMap<>();
         InputStream mappingStream = getClass().getClassLoader().getResourceAsStream( "default-mapping.json" );
+
+        if (mappingStream == null) {
+            throw new RuntimeException("default-mapping.json file was not found when creating index");
+        }
+
         map.put( "name", name );
         try {
             map.put( "mapping", XMLSerializer.getContents( mappingStream ) );

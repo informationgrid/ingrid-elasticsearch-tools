@@ -322,14 +322,13 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .storedFields( allFields )
                 .setExplain( false );
 
-        if(Arrays.stream(allFields).anyMatch(config.indexFieldSummary::equals)) {
+        if(Arrays.asList(allFields).contains(config.indexFieldSummary)) {
             srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary) );
         }
 
         SearchResponse searchResponse = srb.execute().actionGet();
 
         SearchHits dHits = searchResponse.getHits();
-        SearchHit dHit = dHits.getAt( 0 );
         return createDetail(hit, dHits.getAt( 0 ), allFields);
     }
 
