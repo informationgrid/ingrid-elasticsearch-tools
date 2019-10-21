@@ -67,8 +67,8 @@ pipeline {
                     sh "mvn jgitflow:release-finish -DallowUntracked -Dmaven.test.failure.ignore=true"
                 }
                 withCredentials([usernamePassword(credentialsId: '77647a76-a18e-4ce0-8433-a61ab69bbe9f', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                    sh "git push --all https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/informationgrid/ingrid-base-webapp"
-                    sh "git push --tags https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/informationgrid/ingrid-base-webapp"
+                    sh "git push --all https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/informationgrid/ingrid-elasticsearch-tools"
+                    sh "git push --tags https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/informationgrid/ingrid-elasticsearch-tools"
                 }
             }
         }
