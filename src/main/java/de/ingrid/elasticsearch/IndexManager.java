@@ -383,19 +383,35 @@ public class IndexManager implements IIndexManager {
         _client.close();
     }
 
+    /**
+     * <p>Check if index ingrid_meta exists. If not create it.</p>
+     *
+     * <p>Applies mappings from <strong>required</strong> ingrid-meta-mapping.json found in classpath.</p>
+     *
+     * <p>Applies settings from optional ingrid-meta-settings.json found in classpath.</p>
+     */
     @Override
     public void checkAndCreateInformationIndex() {
         if (!indexExists( "ingrid_meta" )) {
-            InputStream ingridMetaMappingStream = getClass().getClassLoader().getResourceAsStream( "ingrid-meta-mapping.json" );
-            if (ingridMetaMappingStream == null) {
-                log.error("Could not find mapping file 'ingrid-meta-mapping.json' for creating index 'ingrid_meta'");
-            } else {
-                try {
+            try ( InputStream ingridMetaMappingStream = getClass().getClassLoader().getResourceAsStream( "ingrid-meta-mapping.json" ) ) {
+                if (ingridMetaMappingStream == null) {
+                    log.error("Could not find mapping file 'ingrid-meta-mapping.json' for creating index 'ingrid_meta'");
+                } else {
+                    // settings are optional
+                    String settings = null;
+                    try (InputStream ingridMetaSettingsStream = getClass().getClassLoader().getResourceAsStream( "ingrid-meta-settings.json" )) {
+                        if (ingridMetaSettingsStream != null) {
+                            settings = XMLSerializer.getContents(ingridMetaMappingStream);
+                        }
+                    } catch (IOException e) {
+                        log.warn("Could not deserialize: ingrid-meta-settings.json, continue without settings.", e);
+                    }
+
                     String mapping = XMLSerializer.getContents(ingridMetaMappingStream);
                     createIndex("ingrid_meta", "info", mapping, null);
-                } catch (IOException e) {
-                    log.error("Could not deserialize: ingrid-meta-mapping.json", e);
                 }
+            } catch (IOException e) {
+                log.error("Could not deserialize: ingrid-meta-mapping.json", e);
             }
         }
     }
