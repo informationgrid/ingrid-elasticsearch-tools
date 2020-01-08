@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-base-webapp
  * ==================================================
- * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2020 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -25,6 +25,7 @@ package de.ingrid.elasticsearch;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.IngridDocument;
+import de.ingrid.utils.PlugDescription;
 import de.ingrid.utils.xml.XMLSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +48,8 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilders;
@@ -471,6 +474,32 @@ public class IndexManager implements IIndexManager {
         doc.put("name", sourceAsMap.get("iPlugName"));
         doc.put("plugdescription", sourceAsMap.get("plugdescription"));
         return doc;
+    }
+
+    @Override
+    public void updatePlugDescription(PlugDescription plugDescription) throws IOException {
+        String uuid = (String) plugDescription.get("uuid");
+
+        SearchResponse response = _client.prepareSearch( "ingrid_meta" )
+                .setTypes( "info" )
+                .setQuery( QueryBuilders.wildcardQuery( "indexId", uuid) )
+                .get();
+
+        plugDescription.remove("METADATAS");
+        // @formatter:off
+        XContentBuilder updateData = XContentFactory.jsonBuilder().startObject()
+                .field("plugdescription", plugDescription)
+                .endObject();
+
+        SearchHits hits = response.getHits();
+        if (hits.totalHits > 2) {
+            log.warn("There are more than 2 documents found for indexId starting with " + uuid);
+        }
+        hits.forEach(hit -> {
+            UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", hit.getId() );
+            _bulkProcessor.add( updateRequest.doc( updateData, XContentType.JSON ) );
+        });
+
     }
 
     @Override
