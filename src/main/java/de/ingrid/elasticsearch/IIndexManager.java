@@ -2,7 +2,7 @@
  * **************************************************-
  * InGrid Elasticsearch Tools
  * ==================================================
- * Copyright (C) 2014 - 2019 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2020 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import de.ingrid.utils.ElasticDocument;
+import de.ingrid.utils.PlugDescription;
 
 public interface IIndexManager {
 
@@ -43,7 +44,9 @@ public interface IIndexManager {
     String getIndexTypeIdentifier(IndexInfo indexInfo);
     
     void update(IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex);
-    
+
+    void updatePlugDescription(PlugDescription plugDescription) throws IOException;
+
     void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException;
     
     void flush();
