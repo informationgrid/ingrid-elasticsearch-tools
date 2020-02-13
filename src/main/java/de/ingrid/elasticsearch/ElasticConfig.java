@@ -40,7 +40,7 @@ public class ElasticConfig {
     @Value("${elastic.indexWithAutoId:true}")
     public boolean indexWithAutoId;
     
-    @Value("${elastic.indexSearchDefaultFields:title,content}")
+    @Value("${elastic.indexSearchDefaultFields:title,content,summary}")
     public String[] indexSearchDefaultFields;
 
     @Value("${elastic.boostField:boost}")
