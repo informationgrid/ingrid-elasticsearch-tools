@@ -404,14 +404,14 @@ public class IndexManager implements IIndexManager {
                     String settings = null;
                     try (InputStream ingridMetaSettingsStream = getClass().getClassLoader().getResourceAsStream( "ingrid-meta-settings.json" )) {
                         if (ingridMetaSettingsStream != null) {
-                            settings = XMLSerializer.getContents(ingridMetaMappingStream);
+                            settings = XMLSerializer.getContents(ingridMetaSettingsStream);
                         }
                     } catch (IOException e) {
                         log.warn("Could not deserialize: ingrid-meta-settings.json, continue without settings.", e);
                     }
 
                     String mapping = XMLSerializer.getContents(ingridMetaMappingStream);
-                    createIndex("ingrid_meta", "info", mapping, null);
+                    createIndex("ingrid_meta", "info", mapping, settings);
                 }
             } catch (IOException e) {
                 log.error("Could not deserialize: ingrid-meta-mapping.json", e);
