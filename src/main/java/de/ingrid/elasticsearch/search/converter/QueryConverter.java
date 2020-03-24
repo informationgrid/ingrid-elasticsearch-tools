@@ -33,8 +33,8 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
-import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
+import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -42,8 +42,6 @@ import de.ingrid.elasticsearch.ElasticConfig;
 import de.ingrid.elasticsearch.search.IQueryParsers;
 import de.ingrid.utils.query.ClauseQuery;
 import de.ingrid.utils.query.IngridQuery;
-
-import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
 
 @Service
 public class QueryConverter implements IQueryParsers {
@@ -116,12 +114,12 @@ public class QueryConverter implements IQueryParsers {
             .factor( _config.boostFactor );
         
         // create the wrapper query to apply the score function to the query
-        FunctionScoreQueryBuilder.FilterFunctionBuilder[] functions = {
-                new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc )
-        };
-
-        return functionScoreQuery(functions)
-                .boostMode( getBoostMode(_config.boostMode) );
+        /*FilterFunctionBuilder[] functions = new FilterFunctionBuilder[1];
+        functions[0] = new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc );*/
+        
+        FunctionScoreQueryBuilder funcScoreQuery = new FunctionScoreQueryBuilder( scoreFunc );
+        funcScoreQuery.boostMode( getBoostMode(_config.boostMode) );
+        return funcScoreQuery;
     }
 
     private Modifier getModifier(String esBoostModifier) {
