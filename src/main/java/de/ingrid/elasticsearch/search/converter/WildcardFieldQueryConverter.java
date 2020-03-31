@@ -25,6 +25,7 @@ package de.ingrid.elasticsearch.search.converter;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.elasticsearch.search.IQueryParsers;
@@ -32,6 +33,7 @@ import de.ingrid.utils.query.IngridQuery;
 import de.ingrid.utils.query.WildCardFieldQuery;
 
 @Service
+@Order(6)
 public class WildcardFieldQueryConverter implements IQueryParsers {
     
     @Override

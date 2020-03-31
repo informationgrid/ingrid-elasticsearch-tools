@@ -28,6 +28,7 @@ import java.util.List;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.TermQueryBuilder;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.elasticsearch.search.IQueryParsers;
@@ -35,6 +36,7 @@ import de.ingrid.utils.query.FieldQuery;
 import de.ingrid.utils.query.IngridQuery;
 
 @Service
+@Order(2)
 public class DatatypePartnerProviderQueryConverter implements IQueryParsers {
     
     @SuppressWarnings("unchecked")

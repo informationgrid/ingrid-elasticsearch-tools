@@ -35,6 +35,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.TermQueryBuilder;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.elasticsearch.search.IQueryParsers;
@@ -49,6 +50,7 @@ import de.ingrid.utils.query.IngridQuery;
  *
  */
 @Service
+@Order(3)
 public class FieldQueryIGCConverter implements IQueryParsers {
     
     private final static Logger log = LogManager.getLogger( FieldQueryIGCConverter.class );
