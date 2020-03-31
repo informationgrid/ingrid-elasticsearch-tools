@@ -112,15 +112,11 @@ public class QueryConverter implements IQueryParsers {
         // describe the function to manipulate the score
         FieldValueFactorFunctionBuilder scoreFunc = ScoreFunctionBuilders
             .fieldValueFactorFunction( _config.boostField )
+            .missing(1.0)
             .modifier( getModifier(_config.boostModifier) )
             .factor( _config.boostFactor );
-        
-        // create the wrapper query to apply the score function to the query
-        FunctionScoreQueryBuilder.FilterFunctionBuilder[] functions = {
-                new FunctionScoreQueryBuilder.FilterFunctionBuilder( query, scoreFunc )
-        };
 
-        return functionScoreQuery(functions)
+        return functionScoreQuery(query, scoreFunc)
                 .boostMode( getBoostMode(_config.boostMode) );
     }
 
