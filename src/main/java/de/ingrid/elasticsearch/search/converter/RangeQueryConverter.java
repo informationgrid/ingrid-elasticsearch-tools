@@ -25,6 +25,7 @@ package de.ingrid.elasticsearch.search.converter;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.elasticsearch.search.IQueryParsers;
@@ -32,6 +33,7 @@ import de.ingrid.utils.query.IngridQuery;
 import de.ingrid.utils.query.RangeQuery;
 
 @Service
+@Order(4)
 public class RangeQueryConverter implements IQueryParsers {
     
     @Override

@@ -28,6 +28,7 @@ import java.util.List;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.elasticsearch.ElasticConfig;
@@ -36,6 +37,7 @@ import de.ingrid.utils.query.IngridQuery;
 import de.ingrid.utils.query.TermQuery;
 
 @Service
+@Order(1)
 public class DefaultFieldsQueryConverter implements IQueryParsers {
     
     private String[] defaultFields;
