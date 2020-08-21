@@ -23,7 +23,9 @@
 package de.ingrid.elasticsearch.search.converter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type;
@@ -39,12 +41,26 @@ import de.ingrid.utils.query.TermQuery;
 @Service
 @Order(1)
 public class DefaultFieldsQueryConverter implements IQueryParsers {
-    
-    private String[] defaultFields;
+
+    private Map<String, Float> fieldBoosts;
     
     @Autowired
     public DefaultFieldsQueryConverter(ElasticConfig config) {
-        defaultFields = config.indexSearchDefaultFields;
+        fieldBoosts = getFieldBoostMap(config.indexSearchDefaultFields);
+    }
+
+    private Map<String, Float> getFieldBoostMap(String[] indexSearchDefaultFields) {
+        Map<String, Float> result = new HashMap<>();
+        for (String field:indexSearchDefaultFields) {
+            if(field.contains("^")){
+                String[] split = field.split("\\^");
+                result.put(split[0], Float.parseFloat(split[1]));
+            }
+            else{
+                result.put(field, new Float(1.0F));
+            }
+        }
+        return result;
     }
 
     @Override
@@ -63,8 +79,8 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
                 // if it's a phrase
                 if (t.contains( " " )) {
                     subQuery = QueryBuilders.boolQuery();
-                    for (String field : defaultFields) {
-                        ((BoolQueryBuilder)subQuery).should( QueryBuilders.matchPhraseQuery( field, t ) );
+                    for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
+                        ((BoolQueryBuilder)subQuery).should( QueryBuilders.matchPhraseQuery( field.getKey(), t ).boost(field.getValue()) );
                     }
                 // in case a term was not identified as a wildcard-term, e.g. "Deutsch*"
                 } else if (t.contains( "*" )) {
@@ -72,7 +88,7 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
                     ((BoolQueryBuilder)subQuery).should( QueryBuilders.queryStringQuery( t ) );
                     
                 } else if (term.isProhibited()) {
-                    subQuery = QueryBuilders.multiMatchQuery( t, defaultFields );
+                    subQuery = QueryBuilders.multiMatchQuery( t, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts);
                     
                 } else {
                 
@@ -115,13 +131,13 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
             
             if (!termsAnd.isEmpty()) {
                 String join = String.join( " ", termsAnd );
-                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, defaultFields ).operator(Operator.AND).type( Type.CROSS_FIELDS );
+                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts).operator(Operator.AND).type( Type.CROSS_FIELDS );
                 if (bq == null) bq = QueryBuilders.boolQuery();
                 bq.should( subQuery );
             }
             if (!termsOr.isEmpty()) {
                 String join = String.join( " ", termsOr );
-                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, defaultFields ).operator( Operator.OR ).type( Type.CROSS_FIELDS );
+                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts).operator( Operator.OR ).type( Type.CROSS_FIELDS );
                 if (bq == null) bq = QueryBuilders.boolQuery();
                 bq.should( subQuery );
             }
