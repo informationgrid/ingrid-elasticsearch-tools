@@ -53,7 +53,7 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
         Map<String, Float> result = new HashMap<>();
         for (String field:indexSearchDefaultFields) {
             if(field.contains("^")){
-                String[] split = field.split("^");
+                String[] split = field.split("\\^");
                 result.put(split[0], Float.parseFloat(split[1]));
             }
             else{
