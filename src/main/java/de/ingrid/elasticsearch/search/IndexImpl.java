@@ -30,7 +30,6 @@ import de.ingrid.elasticsearch.search.converter.QueryConverter;
 import de.ingrid.utils.*;
 import de.ingrid.utils.dsc.Column;
 import de.ingrid.utils.dsc.Record;
-import de.ingrid.utils.query.FieldQuery;
 import de.ingrid.utils.query.IngridQuery;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -118,11 +117,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         QueryBuilder funcScoreQuery = null;
         if (config.indexEnableBoost) {
             funcScoreQuery = queryConverter.addScoreModifier( query );
-        }
-
-        // Exclude folders from search
-        if(!ingridQuery.containsField("isfolder")) {
-            ingridQuery.addField(new FieldQuery(true, true, "isfolder", "true"));
         }
 
         boolean isLocationSearch = containsBoundingBox(ingridQuery);
