@@ -234,6 +234,12 @@ public class IndexManager implements IIndexManager {
         _client.admin().indices().prepareDelete( index ).execute().actionGet();
     }
 
+    public String[] getIndices(String filter) {
+        return Arrays.stream(this._client.admin().indices().prepareGetIndex().get().getIndices())
+                .filter(index -> index.contains(filter))
+                .toArray(String[]::new);
+    }
+
     // type will not be used soon anymore
     // use createIndex(String name, String esMapping) instead?
     // @Deprecated
