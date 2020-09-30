@@ -93,7 +93,7 @@ public class FacetConverter {
                 }
                 
             } else {
-                aggr = AggregationBuilders.terms( name ).field( field );
+                aggr = AggregationBuilders.terms( name ).field( field ).size(1000);
                 aggregations.add( aggr );
             }
         }
