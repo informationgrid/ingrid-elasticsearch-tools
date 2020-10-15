@@ -52,6 +52,8 @@ public interface IIndexManager {
     void flush();
     
     void deleteIndex(String index);
+
+    String[] getIndices(String filter);
     
     Map<String, Object> getMapping(IndexInfo indexInfo);
 

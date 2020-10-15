@@ -187,6 +187,15 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         sendCallToIBusses(call);
     }
 
+    @Override
+    public String[] getIndices(String filter) {
+        IngridCall call = prepareCall( "getIndices" );
+        call.setParameter( filter );
+
+        IngridDocument response = sendCallToIBusses(call);
+        return (String[]) response.get( "result" );
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Map<String, Object> getMapping(IndexInfo indexInfo) {
