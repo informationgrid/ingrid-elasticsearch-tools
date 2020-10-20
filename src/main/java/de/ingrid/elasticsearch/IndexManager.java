@@ -572,6 +572,7 @@ public class IndexManager implements IIndexManager {
         if (name == null) {
             throw new RuntimeException( "Old index name must not be null!" );
         }
+        uuidName = uuidName.toLowerCase();
         boolean isNew = false;
 
         SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyyMMddHHmmssS" );
