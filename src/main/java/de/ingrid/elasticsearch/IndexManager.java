@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-base-webapp
  * ==================================================
- * Copyright (C) 2014 - 2020 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2021 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -80,12 +80,12 @@ public class IndexManager implements IIndexManager {
     
     private BulkProcessor _bulkProcessor;
     
-    private Map<String, String> iPlugDocIdMap;
+//    private Map<String, String> iPlugDocIdMap;
 
     @Autowired
     public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
         _config = config;
-        iPlugDocIdMap = new HashMap<>();
+//        iPlugDocIdMap = new HashMap<>();
 
         // do not initialize when using central index
         if (config.esCommunicationThroughIBus) return;
@@ -510,11 +510,12 @@ public class IndexManager implements IIndexManager {
 
     @Override
     public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
-        String docId = iPlugDocIdMap.get( id );
+        String docId = null; // iPlugDocIdMap.get( id );
         IndexRequest indexRequest = new IndexRequest();
         indexRequest.index( "ingrid_meta" ).type( "info" );
 
-        if (docId == null) {
+        // the iPlugDocIdMap can lead to problems if a wrong ID was stored once, then the iBus has to be restarted
+//        if (docId == null) {
             SearchResponse response = _client.prepareSearch( "ingrid_meta" )
                     .setTypes( "info" )
                     .setQuery( QueryBuilders.termQuery( "indexId", id ) )
@@ -527,7 +528,7 @@ public class IndexManager implements IIndexManager {
             // do update document
             if (totalHits == 1) {
                 docId = response.getHits().getAt( 0 ).getId();
-                iPlugDocIdMap.put( id, docId );
+//                iPlugDocIdMap.put( id, docId );
                 UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", docId );
                 // indexRequest.id( docId );
                 // add index request to queue to avoid sending of too many requests
@@ -535,16 +536,16 @@ public class IndexManager implements IIndexManager {
             } else if (totalHits == 0) {
                 // create document immediately so that it's available for further requests
                 docId = _client.index( indexRequest.source( info, XContentType.JSON ) ).get().getId();
-                iPlugDocIdMap.put( id, docId );
+//                iPlugDocIdMap.put( id, docId );
             } else {
                 log.error( "There is more than one iPlug information document in the index of: " + id );
             }
 
-        } else {
+        /*} else {
             // indexRequest.id( docId );
             UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", docId );
             _bulkProcessor.add( updateRequest.doc( info, XContentType.JSON ) );
-        }
+        }*/
     }
 
     @Override
@@ -572,6 +573,7 @@ public class IndexManager implements IIndexManager {
         if (name == null) {
             throw new RuntimeException( "Old index name must not be null!" );
         }
+        uuidName = uuidName.toLowerCase();
         boolean isNew = false;
 
         SimpleDateFormat dateFormat = new SimpleDateFormat( "yyyyMMddHHmmssS" );
