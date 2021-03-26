@@ -156,7 +156,14 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         String[] realIndexNames = realIndices.toArray( new String[0] );
         
         BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexInfos );
-        
+
+        // Filter for results only with location information
+        if (isLocationSearch) {
+            BoolQueryBuilder boolShould = QueryBuilders.boolQuery();
+            boolShould.must().add(QueryBuilders.existsQuery( "x1" ));
+            indexTypeFilter.filter().add( boolShould );
+        }
+
         // search prepare
         SearchRequestBuilder srb = indexManager.getClient().prepareSearch( realIndexNames  )
                 // .setQuery( config.indexEnableBoost ? funcScoreQuery : query ) // Query
@@ -179,11 +186,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             srb = srb.setFetchSource( false );
         } else {
             srb = srb.storedFields( fields );
-        }
-
-        // Filter for results only with location information
-        if (isLocationSearch) {
-            srb.setPostFilter( QueryBuilders.existsQuery( "x1" ) );
         }
 
         // pre-processing: add facets/aggregations to the query
