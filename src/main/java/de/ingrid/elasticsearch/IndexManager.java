@@ -510,42 +510,49 @@ public class IndexManager implements IIndexManager {
 
     @Override
     public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
-        String docId = null; // iPlugDocIdMap.get( id );
-        IndexRequest indexRequest = new IndexRequest();
-        indexRequest.index( "ingrid_meta" ).type( "info" );
+        synchronized (this) {
+            String docId;
+            IndexRequest indexRequest = new IndexRequest();
+            indexRequest.index("ingrid_meta").type("info");
 
-        // the iPlugDocIdMap can lead to problems if a wrong ID was stored once, then the iBus has to be restarted
-//        if (docId == null) {
-            SearchResponse response = _client.prepareSearch( "ingrid_meta" )
-                    .setTypes( "info" )
-                    .setQuery( QueryBuilders.termQuery( "indexId", id ) )
+            // the iPlugDocIdMap can lead to problems if a wrong ID was stored once, then the iBus has to be restarted
+            SearchResponse response = _client.prepareSearch("ingrid_meta")
+                    .setTypes("info")
+                    .setQuery(QueryBuilders.termQuery("indexId", id))
                     // .setFetchSource( new String[] { "*" }, null )
-                    .setSize( 1 )
+                    // .setSize(1)
                     .get();
 
-            long totalHits = response.getHits().getTotalHits();
+            SearchHits hits = response.getHits();
+            long totalHits = hits.getTotalHits();
 
             // do update document
             if (totalHits == 1) {
-                docId = response.getHits().getAt( 0 ).getId();
-//                iPlugDocIdMap.put( id, docId );
-                UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", docId );
-                // indexRequest.id( docId );
+                docId = hits.getAt(0).getId();
+                UpdateRequest updateRequest = new UpdateRequest("ingrid_meta", "info", docId);
                 // add index request to queue to avoid sending of too many requests
-                _bulkProcessor.add( updateRequest.doc( info, XContentType.JSON ) );
+                _bulkProcessor.add(updateRequest.doc(info, XContentType.JSON));
             } else if (totalHits == 0) {
                 // create document immediately so that it's available for further requests
-                docId = _client.index( indexRequest.source( info, XContentType.JSON ) ).get().getId();
-//                iPlugDocIdMap.put( id, docId );
+                _client.index(indexRequest.source(info, XContentType.JSON)).get().getId();
             } else {
-                log.error( "There is more than one iPlug information document in the index of: " + id );
+                log.warn("There is more than one iPlug information document in the index of: " + id);
+                log.warn("Removing items and adding new one");
+                SearchHit[] searchHits = hits.getHits();
+                // delete all hits except the first one
+                for (int i = 1; i < searchHits.length; i++) {
+                    SearchHit hit = searchHits[i];
+                    DeleteRequest deleteRequest = new DeleteRequest();
+                    deleteRequest.index("ingrid_meta").type("info").id(hit.getId());
+                    _bulkProcessor.add(deleteRequest);
+                }
+                flush();
+                
+                // add first hit, which we did not delete
+                UpdateRequest updateRequest = new UpdateRequest("ingrid_meta", "info", searchHits[0].getId());
+                _bulkProcessor.add(updateRequest.doc(info, XContentType.JSON));
             }
-
-        /*} else {
-            // indexRequest.id( docId );
-            UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", docId );
-            _bulkProcessor.add( updateRequest.doc( info, XContentType.JSON ) );
-        }*/
+        }
     }
 
     @Override
