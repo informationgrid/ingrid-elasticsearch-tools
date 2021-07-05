@@ -180,6 +180,18 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                     .fieldSort("modified")
                     .order(SortOrder.DESC)
                     .unmappedType("date"));
+            srb.addSort(SortBuilders
+                    .fieldSort("sort_hash")
+                    .order(SortOrder.ASC)
+                    .missing("_last"));
+        } else {
+            srb.addSort(SortBuilders
+                    .scoreSort()
+                    .order(SortOrder.DESC));
+            srb.addSort(SortBuilders
+                    .fieldSort("sort_hash")
+                    .order(SortOrder.ASC)
+                    .missing("_last"));
         }
         
         if (fields == null) {
