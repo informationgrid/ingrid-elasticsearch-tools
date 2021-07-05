@@ -183,7 +183,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             srb.addSort(SortBuilders
                     .fieldSort("sort_hash")
                     .order(SortOrder.ASC)
-                    .missing("_last"));
+                    .missing("_last")
+                    .unmappedType("keyword"));
         } else {
             srb.addSort(SortBuilders
                     .scoreSort()
@@ -191,7 +192,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             srb.addSort(SortBuilders
                     .fieldSort("sort_hash")
                     .order(SortOrder.ASC)
-                    .missing("_last"));
+                    .missing("_last")
+                    .unmappedType("keyword"));
         }
         
         if (fields == null) {
