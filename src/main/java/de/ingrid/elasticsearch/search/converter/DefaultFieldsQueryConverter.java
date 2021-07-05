@@ -131,36 +131,6 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
                 }
             }
 
-            if((origin != null && !origin.isEmpty())){
-                QueryBuilder subQuery = null;
-
-                // if it's a phrase
-                if (origin.contains( " " )) {
-                    subQuery = QueryBuilders.boolQuery();
-                    for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
-                        ((BoolQueryBuilder)subQuery).should( QueryBuilders.matchPhraseQuery( field.getKey(), origin ).boost(field.getValue()) );
-                    }
-                    // in case a term was not identified as a wildcard-term, e.g. "Deutsch*"
-                } else if (origin.contains( "*" )) {
-                    subQuery = QueryBuilders.boolQuery();
-                    ((BoolQueryBuilder)subQuery).should( QueryBuilders.queryStringQuery( origin ) );
-
-                } else {
-                        termsOr.add( origin );
-
-                }
-                if(subQuery != null) {
-                    if (bq == null) {
-                        bq = QueryBuilders.boolQuery();
-                        bq.should(subQuery);
-                    } else {
-                        BoolQueryBuilder parentBq = QueryBuilders.boolQuery();
-                        parentBq.should(bq).should(subQuery);
-                        bq = parentBq;
-                    }
-                }
-            }
-            
             if (!termsAnd.isEmpty()) {
                 String join = String.join( " ", termsAnd );
                 MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts).operator(Operator.AND).type( Type.CROSS_FIELDS );
@@ -172,6 +142,21 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
                 MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts).operator( Operator.OR ).type( Type.CROSS_FIELDS );
                 if (bq == null) bq = QueryBuilders.boolQuery();
                 bq.should( subQuery );
+            }
+
+            if((origin != null && !origin.isEmpty())){
+                QueryBuilder originSubQuery = QueryBuilders.boolQuery();
+                for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
+                    ((BoolQueryBuilder)originSubQuery).should( QueryBuilders.termQuery( field.getKey(), origin ).boost(field.getValue()) );
+                }
+                if (bq == null) {
+                    bq = QueryBuilders.boolQuery();
+                    bq.should(originSubQuery);
+                } else {
+                    BoolQueryBuilder parentBq = QueryBuilders.boolQuery();
+                    parentBq.should(bq).should(originSubQuery);
+                    bq = parentBq;
+                }
             }
             
             if (terms.length > 0 && terms[0].isRequred()) {
