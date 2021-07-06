@@ -68,10 +68,8 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
         TermQuery[] terms = ingridQuery.getTerms();
 
         BoolQueryBuilder bq = null;//QueryBuilders.boolQuery();
-
-        String origin = (String) ingridQuery.get(IngridQuery.ORIGIN);
         
-        if (terms.length > 0 || (origin != null && !origin.isEmpty())) {
+        if (terms.length > 0) {
             List<String> termsAnd = new ArrayList<>();
             List<String> termsOr = new ArrayList<>();
             for (TermQuery term : terms) {
@@ -144,25 +142,12 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
                 bq.should( subQuery );
             }
 
-            if((origin != null && !origin.isEmpty())){
-                QueryBuilder originSubQuery = QueryBuilders.boolQuery();
-                for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
-                    ((BoolQueryBuilder)originSubQuery).should( QueryBuilders.termQuery( field.getKey(), origin ).boost(field.getValue()) );
-                }
-                if (bq == null) {
-                    bq = QueryBuilders.boolQuery();
-                    bq.should(originSubQuery);
+            if(bq != null) {
+                if (terms.length > 0 && terms[0].isRequred()) {
+                    queryBuilder.must(bq);
                 } else {
-                    BoolQueryBuilder parentBq = QueryBuilders.boolQuery();
-                    parentBq.should(bq).should(originSubQuery);
-                    bq = parentBq;
+                    queryBuilder.should(bq);
                 }
-            }
-            
-            if (terms.length > 0 && terms[0].isRequred()) {
-                queryBuilder.must( bq );
-            } else {
-                queryBuilder.should( bq );
             }
         }
     }

@@ -23,7 +23,9 @@
 package de.ingrid.elasticsearch.search.converter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,8 +58,11 @@ public class QueryConverter implements IQueryParsers {
     @Autowired
     private ElasticConfig _config;
 
+    private Map<String, Float> fieldBoosts;
+
     public QueryConverter() {
         _queryConverter = new ArrayList<>();
+        fieldBoosts = getFieldBoostMap(new String[] {"title","content"});
     }
 
     public void setQueryParsers(List<IQueryParsers> parsers) {
@@ -98,6 +103,22 @@ public class QueryConverter implements IQueryParsers {
             if (log.isDebugEnabled()) {
                 log.debug(queryConverter.toString() + ": resulting boolean query:" + booleanQuery.toString());
             }
+        }
+        String origin = (String) ingridQuery.get(IngridQuery.ORIGIN);
+        if (origin != null && !origin.isEmpty()) {
+            QueryBuilder originSubQuery = QueryBuilders.boolQuery();
+            for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
+                ((BoolQueryBuilder)originSubQuery).should( QueryBuilders.termQuery( field.getKey(), origin ).boost(field.getValue()) );
+            }
+            if(booleanQuery.should().size() > 0 || booleanQuery.must().size() > 0 ){
+                BoolQueryBuilder subQuery = QueryBuilders.boolQuery();
+                subQuery.should().addAll(booleanQuery.should());
+                subQuery.must().addAll(booleanQuery.must());
+                booleanQuery.should().clear();
+                booleanQuery.must().clear();
+                booleanQuery.should(subQuery);
+            }
+            booleanQuery.should(originSubQuery);
         }
     }
 
@@ -189,4 +210,17 @@ public class QueryConverter implements IQueryParsers {
         return result;
     }
 
+    private Map<String, Float> getFieldBoostMap(String[] indexSearchDefaultFields) {
+        Map<String, Float> result = new HashMap<>();
+        for (String field:indexSearchDefaultFields) {
+            if(field.contains("^")){
+                String[] split = field.split("\\^");
+                result.put(split[0], Float.parseFloat(split[1]));
+            }
+            else{
+                result.put(field, new Float(1.0F));
+            }
+        }
+        return result;
+    }
 }
