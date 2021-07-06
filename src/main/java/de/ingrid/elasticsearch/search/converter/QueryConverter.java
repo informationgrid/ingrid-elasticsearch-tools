@@ -110,12 +110,21 @@ public class QueryConverter implements IQueryParsers {
             for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
                 ((BoolQueryBuilder)originSubQuery).should( QueryBuilders.termQuery( field.getKey(), origin ).boost(field.getValue()) );
             }
-            if(booleanQuery.should().size() > 0 || booleanQuery.must().size() > 0 ){
+            if(booleanQuery.hasClauses()){
                 BoolQueryBuilder subQuery = QueryBuilders.boolQuery();
+
                 subQuery.should().addAll(booleanQuery.should());
-                subQuery.must().addAll(booleanQuery.must());
                 booleanQuery.should().clear();
+
+                subQuery.must().addAll(booleanQuery.must());
                 booleanQuery.must().clear();
+
+                subQuery.mustNot().addAll(booleanQuery.mustNot());
+                booleanQuery.mustNot().clear();
+
+                subQuery.filter().addAll(booleanQuery.filter());
+                booleanQuery.filter().clear();
+
                 booleanQuery.should(subQuery);
             }
             booleanQuery.should(originSubQuery);
