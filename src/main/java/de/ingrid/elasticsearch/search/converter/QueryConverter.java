@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * http://ec.europa.eu/idabc/eupl5
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -49,12 +49,12 @@ import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
 
 @Service
 public class QueryConverter implements IQueryParsers {
-    
+
     private static Logger log = LogManager.getLogger( QueryConverter.class );
-    
+
     @Autowired
     private List<IQueryParsers> _queryConverter;
-    
+
     @Autowired
     private ElasticConfig _config;
 
@@ -62,7 +62,7 @@ public class QueryConverter implements IQueryParsers {
 
     public QueryConverter() {
         _queryConverter = new ArrayList<>();
-        fieldBoosts = getFieldBoostMap(new String[] {"title","content"});
+        fieldBoosts = getFieldBoostMap(new String[] {"title", "summary","content"});
     }
 
     public void setQueryParsers(List<IQueryParsers> parsers) {
@@ -70,9 +70,9 @@ public class QueryConverter implements IQueryParsers {
     }
 
     public BoolQueryBuilder convert(IngridQuery ingridQuery) {
-        
+
         BoolQueryBuilder qb = QueryBuilders.boolQuery();
-        
+
         ClauseQuery[] clauses = ingridQuery.getClauses();
         for (ClauseQuery clauseQuery : clauses) {
             final BoolQueryBuilder res = convert(clauseQuery);
@@ -86,11 +86,11 @@ public class QueryConverter implements IQueryParsers {
             }
         }
         parse(ingridQuery, qb);
-        
+
         return qb;
-        
+
     }
-    
+
     public void parse(IngridQuery ingridQuery, BoolQueryBuilder booleanQuery) {
         if (log.isDebugEnabled()) {
             log.debug("incoming ingrid query:" + ingridQuery.toString());
@@ -106,9 +106,9 @@ public class QueryConverter implements IQueryParsers {
         }
         String origin = (String) ingridQuery.get(IngridQuery.ORIGIN);
         if (origin != null && !origin.isEmpty()) {
-            QueryBuilder originSubQuery = QueryBuilders.boolQuery();
+            BoolQueryBuilder originSubQuery = QueryBuilders.boolQuery();
             for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
-                ((BoolQueryBuilder)originSubQuery).should( QueryBuilders.matchPhraseQuery( field.getKey(), origin ).boost(field.getValue()) );
+                originSubQuery.should( QueryBuilders.matchPhraseQuery( field.getKey(), origin ).boost(field.getValue()) );
             }
             if(booleanQuery.hasClauses()){
                 BoolQueryBuilder subQuery = QueryBuilders.boolQuery();
@@ -125,7 +125,7 @@ public class QueryConverter implements IQueryParsers {
                 subQuery.filter().addAll(booleanQuery.filter());
                 booleanQuery.filter().clear();
 
-                booleanQuery.should(subQuery);
+                originSubQuery.should(subQuery);
             }
             booleanQuery.should(originSubQuery);
         }
@@ -138,7 +138,7 @@ public class QueryConverter implements IQueryParsers {
      * @return a new query which contains the score modifier and the given query
      */
     public QueryBuilder addScoreModifier(QueryBuilder query) {
-        
+
         // describe the function to manipulate the score
         FieldValueFactorFunctionBuilder scoreFunc = ScoreFunctionBuilders
             .fieldValueFactorFunction( _config.boostField )
