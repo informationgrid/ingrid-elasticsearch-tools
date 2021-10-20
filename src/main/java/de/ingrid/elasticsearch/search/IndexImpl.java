@@ -340,7 +340,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .setExplain( false );
 
         if(Arrays.asList(allFields).contains(config.indexFieldSummary)) {
-            srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary).highlighterType("plain") );
+            srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary+"*") );
         }
 
         SearchResponse searchResponse = srb.execute().actionGet();
@@ -367,9 +367,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
-        if (dHit.getHighlightFields().containsKey( config.indexFieldSummary )) {
+        if (dHit.getHighlightFields().keySet().stream().anyMatch(k -> k.startsWith(config.indexFieldSummary))) {
             List<String> stringFragments = new ArrayList<>();
-            for (Text fragment : dHit.getHighlightFields().get( config.indexFieldSummary ).fragments()) {
+            for (Text fragment : dHit.getHighlightFields().entrySet().stream().filter(e -> e.getKey().startsWith(config.indexFieldSummary) ).findAny().get().getValue().fragments()) {
                 stringFragments.add( fragment.toString() );
             }
             summary = String.join( " ... ", stringFragments );
