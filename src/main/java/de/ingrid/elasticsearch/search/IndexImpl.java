@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * http://ec.europa.eu/idabc/eupl5
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +60,7 @@ import java.util.stream.Stream;
 public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private static Logger log = LogManager.getLogger( IndexImpl.class );
-    
+
     private QueryBuilderService queryBuilderService;
 
     private ElasticConfig config;
@@ -135,26 +135,26 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }*/
 
         IndexInfo[] indexInfos = this.config.activeIndices;
-        
+
         if (indexInfos.length == 0) {
             log.debug( "No configured index to search on!" );
             return new IngridHits( 0, new IngridHit[0] );
         }
-        
+
         // if we are remotely connected to an elasticsearch node then get the real indices of the aliases
         // otherwise we also get the results from other indices, since an alias can contain several indices!
         List<String> realIndices = new ArrayList<>();
         for (IndexInfo indexInfo : indexInfos) {
-            String realIndex = indexManager.getIndexNameFromAliasName( 
-                    indexInfo.getToAlias(), 
+            String realIndex = indexManager.getIndexNameFromAliasName(
+                    indexInfo.getToAlias(),
                     indexInfo.getRealIndexName() == null ? indexInfo.getToAlias() : indexInfo.getRealIndexName() );
-            
+
             if (realIndex != null && !realIndices.contains(realIndex)) {
                 realIndices.add( realIndex );
             }
         }
         String[] realIndexNames = realIndices.toArray( new String[0] );
-        
+
         BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexInfos );
 
         // Filter for results only with location information
@@ -167,7 +167,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         // search prepare
         SearchRequestBuilder srb = indexManager.getClient().prepareSearch( realIndexNames  )
                 // .setQuery( config.indexEnableBoost ? funcScoreQuery : query ) // Query
-                .setQuery( config.indexEnableBoost 
+                .setQuery( config.indexEnableBoost
                         ? QueryBuilders.boolQuery().must( funcScoreQuery ).must( indexTypeFilter )
                         : QueryBuilders.boolQuery().must( query ).must( indexTypeFilter ) ) // Query
                 .storedFields("iPlugId")
@@ -195,7 +195,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                     .missing("_last")
                     .unmappedType("keyword"));
         }
-        
+
         if (fields == null) {
             srb = srb.setFetchSource( false );
         } else {
@@ -237,8 +237,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private boolean containsBoundingBox(IngridQuery ingridQuery) {
         boolean found = ingridQuery.containsField( "x1" );
-        
-        // also try to look in clauses 
+
+        // also try to look in clauses
         if (!found) {
             for (IngridQuery clause : ingridQuery.getAllClauses()) {
                 if (clause.containsField( "x1" )) {
@@ -251,7 +251,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     /**
      * Create InGrid hits from ES hits. Add grouping information.
-     * 
+     *
      * @param searchResponse
      * @param ingridQuery
      * @return
@@ -270,7 +270,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         int totalHits = (int) hits.getTotalHits();
         IngridHit[] hitArray = new IngridHit[length];
         int pos = 0;
-        
+
         if (log.isDebugEnabled()) {
             log.debug( "Received " + length + " from " + totalHits + " hits." );
         }
@@ -329,7 +329,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         // We have to search here again, to get a highlighted summary of the result!
         QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
-        
+
         // search prepare
         SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex ).setTypes( fromType )
                 .setFetchSource(true)
@@ -340,7 +340,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 .setExplain( false );
 
         if(Arrays.asList(allFields).contains(config.indexFieldSummary)) {
-            srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary) );
+            srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary+"*") );
         }
 
         SearchResponse searchResponse = srb.execute().actionGet();
@@ -367,9 +367,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
-        if (dHit.getHighlightFields().containsKey( config.indexFieldSummary )) {
+        if (dHit.getHighlightFields().keySet().stream().anyMatch(k -> k.startsWith(config.indexFieldSummary))) {
             List<String> stringFragments = new ArrayList<>();
-            for (Text fragment : dHit.getHighlightFields().get( config.indexFieldSummary ).fragments()) {
+            for (Text fragment : dHit.getHighlightFields().entrySet().stream().filter(e -> e.getKey().startsWith(config.indexFieldSummary) ).findAny().get().getValue().fragments()) {
                 stringFragments.add( fragment.toString() );
             }
             summary = String.join( " ... ", stringFragments );
@@ -433,7 +433,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             log.warn( "SearchHit does not contain field: " + field );
             return new String[0];
         }
-        
+
         return fieldObj.getValues().toArray(new String[0]);
     }
 

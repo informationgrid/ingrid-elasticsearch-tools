@@ -62,7 +62,7 @@ public class QueryConverter implements IQueryParsers {
 
     public QueryConverter() {
         _queryConverter = new ArrayList<>();
-        fieldBoosts = getFieldBoostMap(new String[] {"title", "summary","content"});
+        fieldBoosts = getFieldBoostMap(new String[] {"title.phrase", "summary.phrase","content.phrase"});
     }
 
     public void setQueryParsers(List<IQueryParsers> parsers) {
