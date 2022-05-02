@@ -55,6 +55,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -519,6 +520,7 @@ public class IndexManager implements IIndexManager {
             SearchResponse response = _client.prepareSearch("ingrid_meta")
                     .setTypes("info")
                     .setQuery(QueryBuilders.termQuery("indexId", id))
+                    .addSort("lastIndexed", SortOrder.DESC) // sort to get most current on top
                     // .setFetchSource( new String[] { "*" }, null )
                     // .setSize(1)
                     .get();
