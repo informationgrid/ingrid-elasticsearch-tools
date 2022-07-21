@@ -33,7 +33,6 @@ import de.ingrid.utils.*;
 import de.ingrid.utils.query.IngridQuery;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.ibus.client.BusClient;
@@ -80,6 +79,19 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         IngridDocument response = sendCallToIBusses(call);
         return response.getString( "result" );
     }
+    
+    public String getIndexNameFromAliasName(int iBusIndex, String indexAlias, String partialName) {
+        IngridCall call = new IngridCall();
+        call.setMethod( "getIndexNameFromAliasName" );
+        call.setTarget( "__centralIndex__" );
+        Map<String,String> map = new HashMap<>();
+        map.put( "indexAlias", indexAlias );
+        map.put( "partialName", partialName );
+        call.setParameter( map );
+        
+        IngridDocument response = sendCallToIBus(iBusses.get(iBusIndex), call);
+        return response != null ? response.getString("result") : null;
+    }
 
     @Override
     public boolean createIndex(String name) {
@@ -106,7 +118,19 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         return response.getBoolean( "result" );
     }
 
-    @Override
+    public boolean createIndex(int iBusIndex, String name, String type, String esMapping, String esSettings) {
+        IngridCall call = prepareCall( "createIndex" );
+        Map<String,String> map = new HashMap<>();
+        map.put( "name", name );
+        map.put( "type", type );
+        map.put( "esMapping", esMapping );
+        map.put( "esSettings", esSettings );
+        call.setParameter( map );
+        
+        IngridDocument response = sendCallToIBus(iBusses.get(iBusIndex), call);
+        return response != null && response.getBoolean("result");
+    }
+    
     public boolean createIndex(String name, String type, String esMapping, String esSettings) {
         IngridCall call = prepareCall( "createIndex" );
         Map<String,String> map = new HashMap<>();
@@ -130,6 +154,17 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         call.setParameter( map );
         
         sendCallToIBusses(call);
+    }
+    
+    public void switchAlias(int iBusIndex, String aliasName, String oldIndex, String newIndex) {
+        IngridCall call = prepareCall( "switchAlias" );
+        Map<String,String> map = new HashMap<>();
+        map.put( "aliasName", aliasName );
+        map.put( "oldIndex", oldIndex );
+        map.put( "newIndex", newIndex );
+        call.setParameter( map );
+
+        sendCallToIBus(iBusses.get(iBusIndex), call);
     }
 
     @Override
@@ -155,6 +190,17 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         
         sendCallToIBusses(call);
     }
+    
+    public void update(int iBusIndex, IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex) {
+        IngridCall call = prepareCall( "update" );
+        Map<String, Object> map = new HashMap<>();
+        map.put( "indexinfo", indexinfo );
+        map.put( "doc", doc );
+        map.put( "updateOldIndex", updateOldIndex );
+        call.setParameter( map );
+
+        sendCallToIBus(iBusses.get(iBusIndex), call);
+    }
 
     @Override
     public void updatePlugDescription(PlugDescription plugDescription) throws IOException {
@@ -178,6 +224,12 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         
         sendCallToIBusses(call);
     }
+    
+    
+    public void flush(int iBusIndex) {
+        IngridCall call = prepareCall( "flush" );
+        sendCallToIBus(iBusses.get(iBusIndex), call);
+    }
 
     @Override
     public void deleteIndex(String index) {
@@ -185,6 +237,13 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         call.setParameter( index );
         
         sendCallToIBusses(call);
+    }
+    
+    public void deleteIndex(int iBusIndex, String index) {
+        IngridCall call = prepareCall( "deleteIndex" );
+        call.setParameter( index );
+
+        sendCallToIBus(iBusses.get(iBusIndex), call);
     }
 
     @Override
@@ -194,6 +253,14 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
         IngridDocument response = sendCallToIBusses(call);
         return (String[]) response.get( "result" );
+    }
+    
+    public String[] getIndices(int iBusIndex, String filter) {
+        IngridCall call = prepareCall( "getIndices" );
+        call.setParameter( filter );
+
+        IngridDocument response = sendCallToIBus(iBusses.get(iBusIndex), call);
+        return (String[]) (response != null ? response.get("result") : null);
     }
 
     @SuppressWarnings("unchecked")
@@ -251,6 +318,17 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
         sendCallToIBusses(call);
 	}
+    
+	public void delete(int iBusIndex, IndexInfo indexinfo, String id, boolean updateOldIndex) {
+        IngridCall call = prepareCall( "deleteDocById" );
+        Map<String, Object> map = new HashMap<>();
+        map.put( "indexinfo", indexinfo );
+        map.put( "id", id );
+        map.put( "updateOldIndex", updateOldIndex );
+        call.setParameter( map );
+
+        sendCallToIBus(iBusses.get(iBusIndex), call);
+	}
 
     @Override
     public boolean indexExists(String indexName) {
@@ -259,6 +337,14 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
         IngridDocument response = sendCallToIBusses(call);
         return (boolean) response.get( "result" );
+    }
+    
+    public boolean indexExists(int iBusIndex, String indexName) {
+        IngridCall call = prepareCall( "indexExists" );
+        call.setParameter(indexName);
+
+        IngridDocument response = sendCallToIBus(iBusses.get(iBusIndex), call);
+        return (boolean) (response != null ? response.get("result") : false);
     }
 
     public IngridHits search(IngridQuery query, int start, int length) {
@@ -314,6 +400,17 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
             }
         }
         return response;
+
+    }
+
+    private IngridDocument sendCallToIBus(IBus iBus, IngridCall call) {
+
+        try {
+            return iBus.call( call );
+        } catch (Exception e) {
+            log.error( "Error relaying index message: " + call.getMethod(), e );
+            return null;
+        }
 
     }
 
