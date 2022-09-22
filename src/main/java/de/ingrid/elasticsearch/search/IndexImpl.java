@@ -59,11 +59,11 @@ import java.util.stream.Stream;
 @Component
 public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
-    private static Logger log = LogManager.getLogger( IndexImpl.class );
+    private static final Logger log = LogManager.getLogger( IndexImpl.class );
 
-    private QueryBuilderService queryBuilderService;
+    private final QueryBuilderService queryBuilderService;
 
-    private ElasticConfig config;
+    private final ElasticConfig config;
 
     private QueryConverter queryConverter;
 
@@ -71,11 +71,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private static final String ELASTIC_SEARCH_INDEX = "es_index";
 
-    private static final String ELASTIC_SEARCH_INDEX_TYPE = "es_type";
+    private final String[] detailFields;
 
-    private String[] detailFields;
-
-    private IndexManager indexManager;
+    private final IndexManager indexManager;
 
 
     @Autowired
@@ -230,7 +228,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
             return hits;
         } catch (SearchPhaseExecutionException ex) {
-            log.error( "Search failed on indices: " + realIndexNames, ex );
+            log.error( "Search failed on indices: " + Arrays.toString(realIndexNames), ex );
             return new IngridHits( 0, new IngridHit[0] );
         }
     }
@@ -251,10 +249,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     /**
      * Create InGrid hits from ES hits. Add grouping information.
-     *
-     * @param searchResponse
-     * @param ingridQuery
-     * @return
      */
     private IngridHits getHitsFromResponse(SearchResponse searchResponse, IngridQuery ingridQuery) {
         for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
@@ -267,7 +261,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         // 'num'
         // so we can convert from long to int here!
         int length = hits.getHits().length;
-        int totalHits = (int) hits.getTotalHits();
+        long totalHits = hits.getTotalHits().value;
         IngridHit[] hitArray = new IngridHit[length];
         int pos = 0;
 
@@ -279,7 +273,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         for (SearchHit hit : hits.getHits()) {
             IngridHit ingridHit = new IngridHit( hit.field("iPlugId").getValue(), hit.getId(), -1, hit.getScore() );
             ingridHit.put( ELASTIC_SEARCH_INDEX, hit.getIndex() );
-            ingridHit.put( ELASTIC_SEARCH_INDEX_TYPE, hit.getType() );
 
             // get grouing information, add if exist
             String groupValue = null;
@@ -311,7 +304,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             pos++;
         }
 
-        return new IngridHits( totalHits, hitArray );
+        return new IngridHits((int) totalHits, hitArray );
     }
 
     @Override
@@ -321,7 +314,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
         String documentId = hit.getDocumentId();
         String fromIndex = hit.getString( ELASTIC_SEARCH_INDEX );
-        String fromType = hit.getString( ELASTIC_SEARCH_INDEX_TYPE );
         String[] allFields = Stream
                 .concat( Arrays.stream( detailFields ), Arrays.stream( requestedFields ) )
                 .filter(Objects::nonNull)
@@ -331,7 +323,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
 
         // search prepare
-        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex ).setTypes( fromType )
+        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex )
                 .setFetchSource(true)
                 .setQuery( query ) // Query
                 .setFrom( 0 )
@@ -348,17 +340,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         SearchHits dHits = searchResponse.getHits();
         return createDetail(hit, dHits.getAt( 0 ), allFields);
     }
-
-    private void addPlugDescriptionInformations(IngridHitDetail detail, String[] fields) {
-        for (int i = 0; i < fields.length; i++) {
-            if (fields[i].equals( PlugDescription.PARTNER )) {
-                detail.setArray( PlugDescription.PARTNER, config.partner );
-            } else if (fields[i].equals( PlugDescription.PROVIDER )) {
-                detail.setArray( PlugDescription.PROVIDER, config.provider );
-            }
-        }
-    }
-
+    
     private IngridHitDetail createDetail(IngridHit hit, SearchHit dHit, String[] requestedFields) {
 
         String title = "untitled";

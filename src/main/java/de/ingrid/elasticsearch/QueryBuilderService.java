@@ -41,7 +41,7 @@ public class QueryBuilderService {
         List<QueryBuilder> should = boolShould.should();
 
         for (IndexInfo activeIndex : activeIndices) {
-            should.add( buildIndexTypeMust( activeIndex.getRealIndexName(), activeIndex.getToType() ) );
+            should.add( buildIndexTypeMust( activeIndex.getRealIndexName() ) );
         }
 
         boolQuery.filter().add( boolShould );
@@ -66,14 +66,12 @@ public class QueryBuilderService {
         return boolQuery;
     }
 
-    private BoolQueryBuilder buildIndexTypeMust(String index, String type) {
+    private BoolQueryBuilder buildIndexTypeMust(String index) {
         TermQueryBuilder indexQuery = QueryBuilders.termQuery( "_index", index );
-        TypeQueryBuilder typeQuery = QueryBuilders.typeQuery( type );
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
         List<QueryBuilder> must = boolQuery.must();
         must.add( indexQuery );
-        must.add( typeQuery );
 
         return boolQuery;
     }

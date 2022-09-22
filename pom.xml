@@ -30,7 +30,7 @@
   <!-- ==================== PROPERTIES ==================== -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <elastic.version>6.8.17</elastic.version>
+    <elastic.version>7.17.6</elastic.version>
     <spring.version>4.3.11.RELEASE</spring.version>
   </properties>
 
