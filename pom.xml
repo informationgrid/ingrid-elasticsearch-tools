@@ -6,7 +6,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>ingrid-elasticsearch-tools</artifactId>
-  <version>5.13.0</version>
+  <version>5.14.0</version>
   <packaging>jar</packaging>
   <name>InGrid Elasticsearch Tools</name>
 
@@ -30,7 +30,7 @@
   <!-- ==================== PROPERTIES ==================== -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <elastic.version>6.8.17</elastic.version>
+    <elastic.version>6.8.23</elastic.version>
     <spring.version>4.3.11.RELEASE</spring.version>
   </properties>
 
