@@ -77,7 +77,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         call.setParameter( map );
         
         IngridDocument response = sendCallToIBusses(call);
-        return response.getString( "result" );
+        return response != null ? response.getString("result") : null;
     }
     
     public String getIndexNameFromAliasName(int iBusIndex, String indexAlias, String partialName) {
