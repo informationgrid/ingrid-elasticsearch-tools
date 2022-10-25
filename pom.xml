@@ -30,7 +30,7 @@
   <!-- ==================== PROPERTIES ==================== -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <elastic.version>6.8.23</elastic.version>
+    <elastic.version>7.17.6</elastic.version>
     <spring.version>4.3.11.RELEASE</spring.version>
   </properties>
 
@@ -86,7 +86,7 @@
     <dependency>
       <groupId>de.ingrid</groupId>
       <artifactId>ingrid-ibus-client</artifactId>
-      <version>5.11.0</version>
+      <version>5.13.0</version>
     </dependency>
   </dependencies>
 
