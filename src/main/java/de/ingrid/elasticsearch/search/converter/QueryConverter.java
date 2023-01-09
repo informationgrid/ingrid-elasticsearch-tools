@@ -227,7 +227,7 @@ public class QueryConverter implements IQueryParsers {
                 result.put(split[0], Float.parseFloat(split[1]));
             }
             else{
-                result.put(field, new Float(1.0F));
+                result.put(field, Float.valueOf(1.0F));
             }
         }
         return result;
