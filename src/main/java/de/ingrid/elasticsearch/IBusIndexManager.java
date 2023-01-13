@@ -2,7 +2,7 @@
  * **************************************************-
  * InGrid Elasticsearch Tools
  * ==================================================
- * Copyright (C) 2014 - 2022 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2023 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -77,7 +77,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
         call.setParameter( map );
         
         IngridDocument response = sendCallToIBusses(call);
-        return response.getString( "result" );
+        return response != null ? response.getString("result") : null;
     }
     
     public String getIndexNameFromAliasName(int iBusIndex, String indexAlias, String partialName) {

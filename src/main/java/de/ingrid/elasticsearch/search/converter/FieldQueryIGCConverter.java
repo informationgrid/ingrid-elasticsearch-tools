@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-iplug-se-iplug
  * ==================================================
- * Copyright (C) 2014 - 2022 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2023 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -172,10 +172,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
             // At least one x1 AND one y1 AND one x2 AND one y2 OUTSIDE passed BBox, borders are ok
-            RangeQueryBuilder x1Below = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( new Double(x1) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder y1Below = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( new Double(y1) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder x2Above = QueryBuilders.rangeQuery( "x2" ).from( new Double(x2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder y2Above = QueryBuilders.rangeQuery( "y2" ).from( new Double(y2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x1Below = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( Double.valueOf(x1) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y1Below = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( Double.valueOf(y1) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x2Above = QueryBuilders.rangeQuery( "x2" ).from( Double.valueOf(x2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y2Above = QueryBuilders.rangeQuery( "y2" ).from( Double.valueOf(y2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
 
             booleanQuery.must( x1Below )
                         .must( x2Above )
@@ -192,10 +192,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
             
-            TermQueryBuilder x1EqualsX1 = QueryBuilders.termQuery( "x1", new Double(x1) );
-            TermQueryBuilder y1EqualsY1 = QueryBuilders.termQuery( "y1", new Double(y1) );
-            TermQueryBuilder x2EqualsX2 = QueryBuilders.termQuery( "x2", new Double(x2) );
-            TermQueryBuilder y2EqualsY2 = QueryBuilders.termQuery( "y2", new Double(y2) );
+            TermQueryBuilder x1EqualsX1 = QueryBuilders.termQuery( "x1", Double.valueOf(x1) );
+            TermQueryBuilder y1EqualsY1 = QueryBuilders.termQuery( "y1", Double.valueOf(y1) );
+            TermQueryBuilder x2EqualsX2 = QueryBuilders.termQuery( "x2", Double.valueOf(x2) );
+            TermQueryBuilder y2EqualsY2 = QueryBuilders.termQuery( "y2", Double.valueOf(y2) );
 
             booleanQuery.must( x1EqualsX1 )
                         .must( x2EqualsX2 )
@@ -215,10 +215,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
             // NOT ALL OUTSIDE (this would be coord:include)
             // at least one x1 OR one y1 OR one x2 OR one y2 INSIDE passed BBox, borders are ok
-            RangeQueryBuilder x1Inside = QueryBuilders.rangeQuery( "x1" ).from( new Double(x1) ).to( new Double(x2) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder y1Inside = QueryBuilders.rangeQuery( "y1" ).from( new Double(y1) ).to( new Double(y2) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder x2Inside = QueryBuilders.rangeQuery( "x2" ).from( new Double(x1) ).to( new Double(x2) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder y2Inside = QueryBuilders.rangeQuery( "y2" ).from( new Double(y1) ).to( new Double(y2) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x1Inside = QueryBuilders.rangeQuery( "x1" ).from( Double.valueOf(x1) ).to( Double.valueOf(x2) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y1Inside = QueryBuilders.rangeQuery( "y1" ).from( Double.valueOf(y1) ).to( Double.valueOf(y2) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x2Inside = QueryBuilders.rangeQuery( "x2" ).from( Double.valueOf(x1) ).to( Double.valueOf(x2) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y2Inside = QueryBuilders.rangeQuery( "y2" ).from( Double.valueOf(y1) ).to( Double.valueOf(y2) ).includeLower( true ).includeUpper( true );
 
             BoolQueryBuilder isInside = QueryBuilders.boolQuery();
             isInside.should( x1Inside )
@@ -229,10 +229,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
             // NOT ALL INSIDE (this would be coord:inside)
             // at least one x1 OR one y1 OR one x2 OR one y2 OUTSIDE passed BBox, borders are ok
-            RangeQueryBuilder x1Below = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( new Double(x1) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder y1Below = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( new Double(y1) ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder x2Above = QueryBuilders.rangeQuery( "x2" ).from( new Double(x2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
-            RangeQueryBuilder y2Above = QueryBuilders.rangeQuery( "y2" ).from( new Double(y2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x1Below = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( Double.valueOf(x1) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y1Below = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( Double.valueOf(y1) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x2Above = QueryBuilders.rangeQuery( "x2" ).from( Double.valueOf(x2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y2Above = QueryBuilders.rangeQuery( "y2" ).from( Double.valueOf(y2) ).to( 180.0 ).includeLower( true ).includeUpper( true );
 
             BoolQueryBuilder isOutside = QueryBuilders.boolQuery();
             isOutside.should( x1Below )
@@ -244,19 +244,19 @@ public class FieldQueryIGCConverter implements IQueryParsers {
             // guarantee that not all x are in area left or all x are in area right
 
             // at least one x1 is left of right border, border itself is ok
-            RangeQueryBuilder x1LeftX2  = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( new Double(x2) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x1LeftX2  = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( Double.valueOf(x2) ).includeLower( true ).includeUpper( true );
             booleanQuery.must( x1LeftX2 );
             // at least one x2 is right of left border, border itself is ok
-            RangeQueryBuilder x2RightX1 = QueryBuilders.rangeQuery( "x2" ).from( new Double(x1) ).to( 180.0 ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder x2RightX1 = QueryBuilders.rangeQuery( "x2" ).from( Double.valueOf(x1) ).to( 180.0 ).includeLower( true ).includeUpper( true );
             booleanQuery.must( x2RightX1 );
 
             // guarantee that not all y are in area below or all y are in area above
 
             // at least one y1 is below upper border, border itself is ok
-            RangeQueryBuilder y1BelowY2 = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( new Double(y2) ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y1BelowY2 = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( Double.valueOf(y2) ).includeLower( true ).includeUpper( true );
             booleanQuery.must( y1BelowY2 );
             // at least one y2 is above lower border, border itself is ok
-            RangeQueryBuilder y2AboveY1 = QueryBuilders.rangeQuery( "y2" ).from( new Double(y1) ).to( 180.0 ).includeLower( true ).includeUpper( true );
+            RangeQueryBuilder y2AboveY1 = QueryBuilders.rangeQuery( "y2" ).from( Double.valueOf(y1) ).to( 180.0 ).includeLower( true ).includeUpper( true );
             booleanQuery.must( y2AboveY1 );
             
         }
@@ -270,10 +270,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
             // NO x1 or y1 or x2 or y2 OUTSIDE passed BBox, borders are ok
-            RangeQueryBuilder x1Below = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( new Double(x1) ).includeLower( true ).includeUpper( false );
-            RangeQueryBuilder y1Below = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( new Double(y1) ).includeLower( true ).includeUpper( false );
-            RangeQueryBuilder x2Above = QueryBuilders.rangeQuery( "x2" ).from( new Double(x2) ).to( 180.0 ).includeLower( false ).includeUpper( true );
-            RangeQueryBuilder y2Above = QueryBuilders.rangeQuery( "y2" ).from( new Double(y2) ).to( 180.0 ).includeLower( false ).includeUpper( true );
+            RangeQueryBuilder x1Below = QueryBuilders.rangeQuery( "x1" ).from( -180.0 ).to( Double.valueOf(x1) ).includeLower( true ).includeUpper( false );
+            RangeQueryBuilder y1Below = QueryBuilders.rangeQuery( "y1" ).from( -180.0 ).to( Double.valueOf(y1) ).includeLower( true ).includeUpper( false );
+            RangeQueryBuilder x2Above = QueryBuilders.rangeQuery( "x2" ).from( Double.valueOf(x2) ).to( 180.0 ).includeLower( false ).includeUpper( true );
+            RangeQueryBuilder y2Above = QueryBuilders.rangeQuery( "y2" ).from( Double.valueOf(y2) ).to( 180.0 ).includeLower( false ).includeUpper( true );
 
             booleanQuery.mustNot( x1Below )
                         .mustNot( x2Above )

@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-base-webapp
  * ==================================================
- * Copyright (C) 2014 - 2022 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2023 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -31,6 +31,8 @@ public class IndexInfo implements Serializable {
     private static final long serialVersionUID = -2290409004042430234L;
     
     private String toIndex;
+    
+    @Deprecated
     private String toType;
     private String toAlias = null;
     private String docIdField;
@@ -43,9 +45,11 @@ public class IndexInfo implements Serializable {
     public void setToIndex(String toIndex) {
         this.toIndex = toIndex;
     }
+    @Deprecated
     public String getToType() {
         return toType;
     }
+    @Deprecated
     public void setToType(String toType) {
         this.toType = toType;
     }

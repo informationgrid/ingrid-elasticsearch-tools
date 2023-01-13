@@ -2,7 +2,7 @@
  * **************************************************-
  * ingrid-base-webapp
  * ==================================================
- * Copyright (C) 2014 - 2022 wemove digital solutions GmbH
+ * Copyright (C) 2014 - 2023 wemove digital solutions GmbH
  * ==================================================
  * Licensed under the EUPL, Version 1.1 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
@@ -44,18 +44,18 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
+import org.elasticsearch.xcontent.XContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -118,7 +118,7 @@ public class IndexManager implements IIndexManager {
      */
     public void update(IndexInfo indexinfo, ElasticDocument doc, boolean updateOldIndex) {
         IndexRequest indexRequest = new IndexRequest();
-        indexRequest.index( indexinfo.getRealIndexName() ).type( indexinfo.getToType() );
+        indexRequest.index( indexinfo.getRealIndexName() );
 
         if (!_config.indexWithAutoId) {
             indexRequest.id( (String) doc.get( indexinfo.getDocIdField() ) );
@@ -147,7 +147,7 @@ public class IndexManager implements IIndexManager {
      */
     public void delete(IndexInfo indexinfo, String id, boolean updateOldIndex) {
         DeleteRequest deleteRequest = new DeleteRequest();
-        deleteRequest.index( indexinfo.getRealIndexName() ).type( indexinfo.getToType() ).id( id );
+        deleteRequest.index( indexinfo.getRealIndexName() ).id( id );
 
         _bulkProcessor.add( deleteRequest );
 
@@ -346,7 +346,7 @@ public class IndexManager implements IIndexManager {
      */
     public String getIndexNameFromAliasName(String indexAlias, String partialName) {
 
-        ImmutableOpenMap<String, List<AliasMetaData>> indexToAliasesMap = _client.admin().indices().getAliases( new GetAliasesRequest( indexAlias ) ).actionGet().getAliases();
+        ImmutableOpenMap<String, List<AliasMetadata>> indexToAliasesMap = _client.admin().indices().getAliases( new GetAliasesRequest( indexAlias ) ).actionGet().getAliases();
 
         if (indexToAliasesMap != null && !indexToAliasesMap.isEmpty()) {
             Iterator<ObjectCursor<String>> iterator = indexToAliasesMap.keys().iterator();
@@ -369,7 +369,7 @@ public class IndexManager implements IIndexManager {
     public Map<String, Object> getMapping(IndexInfo indexInfo) {
         String indexName = getIndexNameFromAliasName( indexInfo.getRealIndexName(), null );
         ClusterState cs = _client.admin().cluster().prepareState().setIndices( indexName ).execute().actionGet().getState();
-        MappingMetaData mappingMetaData = cs.getMetaData().index( indexName ).mapping( indexInfo.getToType() );
+        MappingMetadata mappingMetaData = cs.metadata().index( indexName ).mapping();
         if (mappingMetaData == null) {
             return null;
         } else {
@@ -385,11 +385,11 @@ public class IndexManager implements IIndexManager {
         return _client;
     }
 
-    public String printSettings() throws Exception {
+    public String printSettings() {
         return _client.settings().toDelimitedString( ',' );
     }
 
-    public void shutdown() throws Exception {
+    public void shutdown() {
         _client.close();
     }
 
@@ -434,7 +434,6 @@ public class IndexManager implements IIndexManager {
 
     public IngridDocument getAllIPlugInformation() {
         SearchResponse response = _client.prepareSearch( "ingrid_meta" )
-                .setTypes( "info" )
                 .setSize( 1000 )
                 .setFetchSource(true)
                 .get();
@@ -442,8 +441,7 @@ public class IndexManager implements IIndexManager {
         SearchHits hits = response.getHits();
         List<IngridDocument> iPlugInfos = new ArrayList<>();
 
-        for (int i = 0; i < hits.totalHits; i++) {
-            SearchHit hit = hits.getAt(i);
+        for (int i = 0; i < hits.getTotalHits().value; i++) {
             IngridDocument doc = mapIPlugInformatioToIngridDocument(hits.getAt(i));
             iPlugInfos.add(doc);
         }
@@ -456,7 +454,6 @@ public class IndexManager implements IIndexManager {
 
     public IngridDocument getIPlugInformation(String plugId) {
         SearchResponse response = _client.prepareSearch( "ingrid_meta" )
-                .setTypes( "info" )
                 .setQuery( QueryBuilders.termQuery( "plugId", plugId ) )
                 // .setFetchSource( new String[] { "*" }, null )
                 .setSize( 1 )
@@ -466,7 +463,7 @@ public class IndexManager implements IIndexManager {
 
         SearchHits hits = response.getHits();
 
-        if (hits.totalHits > 0) {
+        if (hits.getTotalHits().value > 0) {
             return mapIPlugInformatioToIngridDocument(hits.getAt(0));
         }
 
@@ -488,7 +485,6 @@ public class IndexManager implements IIndexManager {
         String uuid = (String) plugDescription.get("uuid");
 
         SearchResponse response = _client.prepareSearch( "ingrid_meta" )
-                .setTypes( "info" )
                 .setQuery( QueryBuilders.wildcardQuery( "indexId", uuid) )
                 .get();
 
@@ -499,11 +495,11 @@ public class IndexManager implements IIndexManager {
                 .endObject();
 
         SearchHits hits = response.getHits();
-        if (hits.totalHits > 2) {
+        if (hits.getTotalHits().value > 2) {
             log.warn("There are more than 2 documents found for indexId starting with " + uuid);
         }
         hits.forEach(hit -> {
-            UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", "info", hit.getId() );
+            UpdateRequest updateRequest = new UpdateRequest( "ingrid_meta", hit.getId() );
             _bulkProcessor.add( updateRequest.doc( updateData, XContentType.JSON ) );
         });
 
@@ -514,11 +510,10 @@ public class IndexManager implements IIndexManager {
         synchronized (this) {
             String docId;
             IndexRequest indexRequest = new IndexRequest();
-            indexRequest.index("ingrid_meta").type("info");
+            indexRequest.index("ingrid_meta");
 
             // the iPlugDocIdMap can lead to problems if a wrong ID was stored once, then the iBus has to be restarted
             SearchResponse response = _client.prepareSearch("ingrid_meta")
-                    .setTypes("info")
                     .setQuery(QueryBuilders.termQuery("indexId", id))
                     .addSort("lastIndexed", SortOrder.DESC) // sort to get most current on top
                     // .setFetchSource( new String[] { "*" }, null )
@@ -526,12 +521,12 @@ public class IndexManager implements IIndexManager {
                     .get();
 
             SearchHits hits = response.getHits();
-            long totalHits = hits.getTotalHits();
+            long totalHits = hits.getTotalHits().value;
 
             // do update document
             if (totalHits == 1) {
                 docId = hits.getAt(0).getId();
-                UpdateRequest updateRequest = new UpdateRequest("ingrid_meta", "info", docId);
+                UpdateRequest updateRequest = new UpdateRequest("ingrid_meta", docId);
                 // add index request to queue to avoid sending of too many requests
                 _bulkProcessor.add(updateRequest.doc(info, XContentType.JSON));
             } else if (totalHits == 0) {
@@ -545,20 +540,20 @@ public class IndexManager implements IIndexManager {
                 for (int i = 1; i < searchHits.length; i++) {
                     SearchHit hit = searchHits[i];
                     DeleteRequest deleteRequest = new DeleteRequest();
-                    deleteRequest.index("ingrid_meta").type("info").id(hit.getId());
+                    deleteRequest.index("ingrid_meta").id(hit.getId());
                     _bulkProcessor.add(deleteRequest);
                 }
                 flush();
                 
                 // add first hit, which we did not delete
-                UpdateRequest updateRequest = new UpdateRequest("ingrid_meta", "info", searchHits[0].getId());
+                UpdateRequest updateRequest = new UpdateRequest("ingrid_meta", searchHits[0].getId());
                 _bulkProcessor.add(updateRequest.doc(info, XContentType.JSON));
             }
         }
     }
 
     @Override
-    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException {
+    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws ExecutionException {
     	checkAndCreateInformationIndex();
         for (String id : iPlugIdInfos.keySet()) {
             try {
