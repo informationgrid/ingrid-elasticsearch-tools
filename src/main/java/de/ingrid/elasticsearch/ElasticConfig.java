@@ -90,6 +90,9 @@ public class ElasticConfig {
     @Value("${elastic.communication.ibus:true}")
     public boolean esCommunicationThroughIBus;
 
+    @Value("${elastic.trackTotalHits:true}")
+    public boolean trackTotalHits;
+
     public IndexInfo[] activeIndices;
 
 }
