@@ -210,6 +210,10 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             }
         }
 
+        if(config.trackTotalHits) {
+            srb.setTrackTotalHits(true);
+        }
+
         if (log.isDebugEnabled()) {
             log.debug( "Final Elastic Search Query: \n" + srb );
         }
