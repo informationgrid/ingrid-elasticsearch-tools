@@ -81,12 +81,10 @@ public class IndexManager implements IIndexManager {
     
     private BulkProcessor _bulkProcessor;
     
-//    private Map<String, String> iPlugDocIdMap;
 
     @Autowired
     public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
         _config = config;
-//        iPlugDocIdMap = new HashMap<>();
 
         // do not initialize when using central index
         if (config.esCommunicationThroughIBus) return;
