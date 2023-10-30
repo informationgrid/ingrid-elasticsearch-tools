@@ -31,7 +31,7 @@
   <properties>
     <java.version>17</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <elastic.version>7.17.11</elastic.version>
+    <elastic.version>7.17.13</elastic.version>
     <spring.version>5.3.29</spring.version>
   </properties>
 
