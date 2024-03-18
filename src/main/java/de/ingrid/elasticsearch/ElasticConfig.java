@@ -89,6 +89,15 @@ public class ElasticConfig {
 
     @Value("${elastic.communication.ibus:true}")
     public boolean esCommunicationThroughIBus;
+    
+    @Value("${elastic.cluster.name:ingrid}")
+    public String clusterName;
+    
+    @Value("${elastic.username:}")
+    public String username;
+    
+    @Value("${elastic.password:}")
+    public String password;
 
     @Value("${elastic.trackTotalHits:true}")
     public boolean trackTotalHits;
