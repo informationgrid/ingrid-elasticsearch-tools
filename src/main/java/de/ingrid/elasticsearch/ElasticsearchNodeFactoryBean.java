@@ -115,10 +115,16 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             }
         }
 
-        client = new PreBuiltXPackTransportClient(Settings.builder()
-                .put("cluster.name", config.clusterName)
-                .put("xpack.security.user", config.username + ":" + config.password)
-                .build());
+        if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
+            client = new PreBuiltXPackTransportClient(Settings.builder()
+                    .put("cluster.name", config.clusterName)
+                    .put("xpack.security.user", config.username + ":" + config.password)
+                    .build());
+        } else {
+            client = new PreBuiltXPackTransportClient(Settings.builder()
+                    .put("cluster.name", config.clusterName)
+                    .build());
+        }
 
         for (String host : config.remoteHosts) {
             String[] splittedHost = host.split(":");
