@@ -80,23 +80,22 @@ public class IndexManager implements IIndexManager {
     private Client _client;
     
     private BulkProcessor _bulkProcessor;
+
+    @Autowired
+    private ElasticsearchNodeFactoryBean esBean;
     
 
     @Autowired
-    public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
+    public IndexManager(ElasticConfig config) {
         _config = config;
-
-        // do not initialize when using central index
-        if (config.esCommunicationThroughIBus) return;
-
-        _client = elastic.getClient();
     }
 
     @PostConstruct
-    public void postConstruct() {
+    public void init() {
         // do not initialize when using central index
         if (_config.esCommunicationThroughIBus) return;
 
+        _client = esBean.getClient();
         _bulkProcessor = BulkProcessor
                 .builder( _client, getBulkProcessorListener() )
                 .setFlushInterval( TimeValue.timeValueSeconds(5L) )
