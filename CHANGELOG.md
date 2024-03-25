@@ -1,4 +1,18 @@
 
+## 7.1.0 (25.03.2024)
+
+### Features
+
+* Unterstützung von Authentifizierung bei Elasticsearch (#6103)
+
+    
+## 7.1.0 (20.03.2024)
+
+### Features
+
+* Unterstützung von Authentifizierung bei Elasticsearch (#6103)
+
+    
 ## 7.0.0 (05.01.2024)
 
 ### Features

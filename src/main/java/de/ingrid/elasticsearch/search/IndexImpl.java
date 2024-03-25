@@ -331,7 +331,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
 
         // search prepare
-        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex ).setTypes( fromType )
+        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex )
                 .setFetchSource(true)
                 .setQuery( query ) // Query
                 .setFrom( 0 )
@@ -449,7 +449,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         if (fromIndex != null && fromType != null) {
             // search prepare
             SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex )
-                    .setTypes( fromType )
                     .setSearchType( SearchType.DEFAULT )
                     .setQuery( query ) // Query
                     .setFrom( 0 )

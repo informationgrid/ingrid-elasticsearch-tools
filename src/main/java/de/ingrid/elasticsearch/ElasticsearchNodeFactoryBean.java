@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.2 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * https://joinup.ec.europa.eu/software/page/eupl
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,21 +27,17 @@ import org.apache.commons.logging.LogFactory;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Properties;
 
 /**
  * A {@link FactoryBean} implementation used to create a {@link Node} element which is an embedded instance of the cluster within a running
@@ -49,14 +45,14 @@ import java.util.Properties;
  * <p>
  * The lifecycle of the underlying {@link Node} instance is tied to the lifecycle of the bean via the {@link #destroy()} method which calls
  * {@link Node#close()}
- * 
+ *
  * @author Erez Mazor (erezmazor@gmail.com)
  */
 @Service
 public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         InitializingBean, DisposableBean {
 
-    protected final Log log = LogFactory.getLog( getClass() );
+    protected final Log log = LogFactory.getLog(getClass());
 
     private ElasticConfig config;
 
@@ -74,15 +70,15 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         if (config.isEnabled) {
             if (config.esCommunicationThroughIBus) {
                 // do not initialize Elasticsearch since we use central index!
-                
+
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug( "Elasticsearch: creating transport client: " + String.join(", ", config.remoteHosts ) );
+                    log.debug("Elasticsearch: creating transport client: " + String.join(", ", config.remoteHosts));
                 }
-                createTransportClient( config.remoteHosts );
+                createTransportClient(config);
             }
         } else {
-            log.warn( "Since Indexing is not enabled, this component should not have Elastic Search enabled at all! This bean should be excluded in the spring configuration." );
+            log.warn("Since Indexing is not enabled, this component should not have Elastic Search enabled at all! This bean should be excluded in the spring configuration.");
         }
     }
 
@@ -90,7 +86,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         return client;
     }
 
-    public void createTransportClient(String[] esRemoteHosts) throws UnknownHostException {
+    public void createTransportClient(ElasticConfig config) throws UnknownHostException {
 
         /*
          * The following commented code will be used for the new Client in Elasticsearch 7!?
@@ -113,52 +109,34 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         }*/
 
         // Version 6
-        if (this.client == null) {
-
-            Builder builder = getConfiguredBuilder();
-
-            client = new PreBuiltTransportClient(builder.build());
-
-        } else {
+        if (this.client != null) {
             for (TransportAddress addr : this.client.transportAddresses()) {
                 this.client.removeTransportAddress(addr);
             }
         }
 
-        for (String host : esRemoteHosts) {
-            String[] splittedHost = host.split( ":" );
-            this.client.addTransportAddress( new TransportAddress(  InetAddress.getByName( splittedHost[0] ), Integer.valueOf( splittedHost[1] ) ) );
+        if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
+            client = new PreBuiltXPackTransportClient(Settings.builder()
+                    .put("cluster.name", config.clusterName)
+                    .put("xpack.security.user", config.username + ":" + config.password)
+                    .put("xpack.security.transport.ssl.enabled", config.sslTransport)
+                    .put("xpack.security.transport.ssl.key", "./client.key")
+                    .put("xpack.security.transport.ssl.certificate", "./client.cer")
+                    .put("xpack.security.transport.ssl.certificate_authorities", "./client-ca.cer")
+                    .put("xpack.security.transport.ssl.verification_mode","certificate")
+                    .build());
+        } else {
+            client = new PreBuiltXPackTransportClient(Settings.builder()
+                    .put("cluster.name", config.clusterName)
+                    .build());
+        }
+
+        for (String host : config.remoteHosts) {
+            String[] splittedHost = host.split(":");
+            this.client.addTransportAddress(new TransportAddress(InetAddress.getByName(splittedHost[0]), Integer.parseInt(splittedHost[1])));
         }
     }
 
-    private Builder getConfiguredBuilder() {
-        Properties props = getPropertiesFromElasticsearch();
-        Builder builder = Settings.builder();
-        if (props != null) {
-            for (String key : props.stringPropertyNames()) {
-                builder.put(key, props.getProperty(key));
-            }
-        }
-        return builder;
-    }
-
-    private Properties getPropertiesFromElasticsearch() {
-        try {
-            ClassPathResource resource = new ClassPathResource( "/elasticsearch.properties" );
-            Properties p = new Properties();
-            if (resource.exists()) {
-                p.load( resource.getInputStream() );
-                ClassPathResource resourceOverride = new ClassPathResource( "/elasticsearch.override.properties" );
-                if (resourceOverride.exists()) {
-                    p.load( resourceOverride.getInputStream() );
-                }
-            }
-            return p;
-        } catch (IOException e) {
-            log.error("Could not get Elasticsearch Properties", e);
-            return null;
-        }
-    }
 
     public void destroy() {
         try {
@@ -167,26 +145,24 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             if (node != null)
                 node.close();
         } catch (final Exception e) {
-            log.error( "Error closing Elasticsearch node: ", e );
+            log.error("Error closing Elasticsearch node: ", e);
         }
     }
 
     /**
      * Elasticsearch does not allow creating local nodes. Get the client directly instead.
-     * @return
-     * @throws Exception
      */
     @Deprecated
     public Node getObject() throws Exception {
         int cnt = 1;
         while (node == null && cnt <= 10) {
-            log.info( "Wait for elastic search node to start: " + cnt + " sec." );
-            Thread.sleep( 1000 );
+            log.info("Wait for elastic search node to start: " + cnt + " sec.");
+            Thread.sleep(1000);
             cnt++;
         }
         if (node == null) {
-            log.error( "Could not start Elastic Search node within 10 sec!" );
-            throw new RuntimeException( "Could not start Elastic Search node within 10 sec!" );
+            log.error("Could not start Elastic Search node within 10 sec!");
+            throw new RuntimeException("Could not start Elastic Search node within 10 sec!");
         }
         return node;
     }
