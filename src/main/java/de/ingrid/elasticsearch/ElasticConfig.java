@@ -98,6 +98,9 @@ public class ElasticConfig {
     
     @Value("${elastic.password:}")
     public String password;
+    
+    @Value("${elastic.sslTransport:}")
+    public String sslTransport;
 
     @Value("${elastic.trackTotalHits:true}")
     public boolean trackTotalHits;

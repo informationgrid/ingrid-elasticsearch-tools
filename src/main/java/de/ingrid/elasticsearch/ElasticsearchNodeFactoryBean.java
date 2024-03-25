@@ -119,6 +119,11 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             client = new PreBuiltXPackTransportClient(Settings.builder()
                     .put("cluster.name", config.clusterName)
                     .put("xpack.security.user", config.username + ":" + config.password)
+                    .put("xpack.security.transport.ssl.enabled", config.sslTransport)
+                    .put("xpack.security.transport.ssl.key", "./client.key")
+                    .put("xpack.security.transport.ssl.certificate", "./client.cer")
+                    .put("xpack.security.transport.ssl.certificate_authorities", "./client-ca.cer")
+                    .put("xpack.security.transport.ssl.verification_mode","certificate")
                     .build());
         } else {
             client = new PreBuiltXPackTransportClient(Settings.builder()
