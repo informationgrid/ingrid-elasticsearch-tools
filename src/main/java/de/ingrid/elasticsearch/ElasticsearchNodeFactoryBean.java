@@ -22,43 +22,33 @@
  */
 package de.ingrid.elasticsearch;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.xpack.client.PreBuiltXPackTransportClient;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestClient;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * A {@link FactoryBean} implementation used to create a {@link Node} element which is an embedded instance of the cluster within a running
- * application.
- * <p>
- * The lifecycle of the underlying {@link Node} instance is tied to the lifecycle of the bean via the {@link #destroy()} method which calls
- * {@link Node#close()}
- *
- * @author Erez Mazor (erezmazor@gmail.com)
- */
 @Service
-public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
+public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchClient>,
         InitializingBean, DisposableBean {
 
     protected final Log log = LogFactory.getLog(getClass());
 
     private ElasticConfig config;
 
-    private Node node = null;
-
-    private TransportClient client = null;
+    private ElasticsearchClient client = null;
 
     @Autowired
     public void init(ElasticConfig config) {
@@ -82,93 +72,51 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
         }
     }
 
-    public Client getClient() {
+    public ElasticsearchClient getClient() {
         return client;
     }
 
     public void createTransportClient(ElasticConfig config) throws UnknownHostException {
 
-        /*
-         * The following commented code will be used for the new Client in Elasticsearch 7!?
-         */
-
-        /*RestHighLevelClient transportClient = null;
-
-        List<HttpHost> addresses = new ArrayList<>();
-        for (String host : esRemoteHosts) {
-            String[] splittedHost = host.split( ":" );
-            addresses.add(new HttpHost(splittedHost[0], Integer.valueOf(splittedHost[1]), "http"));
-        }
-
-        transportClient = new RestHighLevelClient(RestClient.builder(addresses.toArray(new HttpHost[0])));*/
-
-        /*Properties props = getPropertiesFromElasticsearch();
-        if (props != null) {
-            transportClient = new RestHighLevelClient( Settings.builder().putProperties( props ).build() );
-        } else {
-        }*/
-
-        // Version 6
-        if (this.client != null) {
-            for (TransportAddress addr : this.client.transportAddresses()) {
-                this.client.removeTransportAddress(addr);
-            }
-        }
-
-        if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
-            client = new PreBuiltXPackTransportClient(Settings.builder()
-                    .put("cluster.name", config.clusterName)
-                    .put("xpack.security.user", config.username + ":" + config.password)
-                    .put("xpack.security.transport.ssl.enabled", config.sslTransport)
-                    .put("xpack.security.transport.ssl.key", "./client.key")
-                    .put("xpack.security.transport.ssl.certificate", "./client.cer")
-                    .put("xpack.security.transport.ssl.certificate_authorities", "./client-ca.cer")
-                    .put("xpack.security.transport.ssl.verification_mode","certificate")
-                    .build());
-        } else {
-            client = new PreBuiltXPackTransportClient(Settings.builder()
-                    .put("cluster.name", config.clusterName)
-                    .build());
-        }
-
+        List<HttpHost> hosts = new ArrayList();
         for (String host : config.remoteHosts) {
-            String[] splittedHost = host.split(":");
-            this.client.addTransportAddress(new TransportAddress(InetAddress.getByName(splittedHost[0]), Integer.parseInt(splittedHost[1])));
+            hosts.add(HttpHost.create(host));
         }
+
+        // Create the low-level client
+        RestClient restClient = RestClient
+                .builder(HttpHost.create("http://localhost:9200"))
+//                .setDefaultHeaders(new Header[]{
+//                        new BasicHeader("Authorization", "ApiKey " + apiKey)
+//                })
+                .build();
+
+// Create the transport with a Jackson mapper
+        ElasticsearchTransport transport = new RestClientTransport(
+                restClient, new JacksonJsonpMapper());
+
+// And create the API client
+        client = new ElasticsearchClient(transport);
     }
 
 
     public void destroy() {
         try {
             if (client != null)
-                client.close();
-            if (node != null)
-                node.close();
+                client.shutdown();
         } catch (final Exception e) {
             log.error("Error closing Elasticsearch node: ", e);
         }
     }
 
-    /**
-     * Elasticsearch does not allow creating local nodes. Get the client directly instead.
-     */
-    @Deprecated
-    public Node getObject() throws Exception {
-        int cnt = 1;
-        while (node == null && cnt <= 10) {
-            log.info("Wait for elastic search node to start: " + cnt + " sec.");
-            Thread.sleep(1000);
-            cnt++;
-        }
-        if (node == null) {
-            log.error("Could not start Elastic Search node within 10 sec!");
-            throw new RuntimeException("Could not start Elastic Search node within 10 sec!");
-        }
-        return node;
+    @Override
+    public ElasticsearchClient getObject() throws Exception {
+        return client;
     }
 
-    public Class<Node> getObjectType() {
-        return Node.class;
+    @Override
+    public Class<?> getObjectType() {
+        return ElasticsearchClient.class;
     }
 
     public boolean isSingleton() {

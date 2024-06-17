@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.2 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * https://joinup.ec.europa.eu/software/page/eupl
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,34 +22,37 @@
  */
 package de.ingrid.elasticsearch.search.converter;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import de.ingrid.elasticsearch.search.IQueryParsers;
-import de.ingrid.utils.query.FieldQuery;
 import de.ingrid.utils.query.IngridQuery;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Order(0)
 public class IPlugIdQueryConverter implements IQueryParsers {
-    
+
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder) {
+    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         String[] iplugs = ingridQuery.getIPlugs();
 
-        BoolQueryBuilder bq = null;
-        
-        for (String iplug : iplugs) {
+        if (iplugs != null && iplugs.length > 0) {
+            List<Query> mustQueries = new ArrayList<>();
 
-            QueryBuilder subQuery = QueryBuilders.termQuery("iPlugId", iplug);
+            for (String iplug : iplugs) {
+                Query subQuery = QueryBuilders.term(t -> t.field("iPlugId").value(iplug));
+                mustQueries.add(subQuery);
+            }
 
-            if (bq == null) bq = QueryBuilders.boolQuery();
-            bq.must(subQuery);
+            BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+            bqBuilder.must(mustQueries);
 
-            queryBuilder.must(bq);
-
+            queryBuilder.must(bqBuilder.build()._toQuery());
         }
     }
 

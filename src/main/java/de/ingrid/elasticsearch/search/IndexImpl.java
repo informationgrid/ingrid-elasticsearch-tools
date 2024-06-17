@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.2 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * https://joinup.ec.europa.eu/software/page/eupl
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,20 @@
  */
 package de.ingrid.elasticsearch.search;
 
+import co.elastic.clients.elasticsearch._types.ShardFailure;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.mapping.FieldType;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.search.Highlight;
+import co.elastic.clients.elasticsearch.core.search.HighlightField;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
+import co.elastic.clients.json.JsonData;
 import de.ingrid.elasticsearch.ElasticConfig;
 import de.ingrid.elasticsearch.IndexInfo;
 import de.ingrid.elasticsearch.IndexManager;
@@ -31,26 +45,13 @@ import de.ingrid.utils.*;
 import de.ingrid.utils.dsc.Column;
 import de.ingrid.utils.dsc.Record;
 import de.ingrid.utils.query.IngridQuery;
+import jakarta.json.JsonValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.search.SearchPhaseExecutionException;
-import org.elasticsearch.action.search.SearchRequestBuilder;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.ShardSearchFailure;
-import org.elasticsearch.common.document.DocumentField;
-import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHits;
-import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
-import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
@@ -59,7 +60,7 @@ import java.util.stream.Stream;
 @Component
 public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
-    private static final Logger log = LogManager.getLogger( IndexImpl.class );
+    private static final Logger log = LogManager.getLogger(IndexImpl.class);
 
     private final QueryBuilderService queryBuilderService;
 
@@ -85,24 +86,24 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         this.queryBuilderService = queryBuilderService;
 
         detailFields = Stream.concat(
-                Arrays.stream( new String[] {
-                        PlugDescription.PARTNER,
-                        PlugDescription.PROVIDER,
-                        "datatype",
-                        PlugDescription.DATA_SOURCE_NAME } ),
-                Arrays.stream( config.additionalSearchDetailFields ) )
-            .toArray(String[]::new);
+                        Arrays.stream(new String[]{
+                                PlugDescription.PARTNER,
+                                PlugDescription.PROVIDER,
+                                "datatype",
+                                PlugDescription.DATA_SOURCE_NAME}),
+                        Arrays.stream(config.additionalSearchDetailFields))
+                .toArray(String[]::new);
 
         try {
             this.queryConverter = qc;
             this.facetConverter = fc;
 
             if (!config.esCommunicationThroughIBus) {
-                log.info( "Elastic Search Settings: " + indexManager.printSettings() );
+                log.info("Elastic Search Settings: " + indexManager.printSettings());
             }
 
         } catch (Exception e) {
-            log.error( "Error during initialization of ElasticSearch-Client!", e );
+            log.error("Error during initialization of ElasticSearch-Client!", e);
         }
 
     }
@@ -112,24 +113,26 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     public IngridHits search(IngridQuery ingridQuery, int startHit, int num) {
 
         // convert InGrid-query to QueryBuilder
-        QueryBuilder query = queryConverter.convert( ingridQuery );
+        BoolQuery.Builder query = queryConverter.convert(ingridQuery);
 
-        QueryBuilder funcScoreQuery = null;
+        FunctionScoreQuery.Builder funcScoreQuery;
         if (config.indexEnableBoost) {
-            funcScoreQuery = queryConverter.addScoreModifier( query );
+            funcScoreQuery = queryConverter.addScoreModifier(query.build()._toQuery());
+        } else {
+            funcScoreQuery = null;
         }
 
         boolean isLocationSearch = containsBoundingBox(ingridQuery);
-        boolean hasFacets = ingridQuery.containsKey( "FACETS" );
+        boolean hasFacets = ingridQuery.containsKey("FACETS");
 
         // request grouping information from index if necessary
         // see IndexImpl.getHitsFromResponse for usage
         String groupedBy = ingridQuery.getGrouped();
         String[] fields = null;
-        if (IngridQuery.GROUPED_BY_PARTNER.equalsIgnoreCase( groupedBy )) {
-            fields = new String[] { IngridQuery.PARTNER };
-        } else if (IngridQuery.GROUPED_BY_ORGANISATION.equalsIgnoreCase( groupedBy )) {
-            fields = new String[] { IngridQuery.PROVIDER };
+        if (IngridQuery.GROUPED_BY_PARTNER.equalsIgnoreCase(groupedBy)) {
+            fields = new String[]{IngridQuery.PARTNER};
+        } else if (IngridQuery.GROUPED_BY_ORGANISATION.equalsIgnoreCase(groupedBy)) {
+            fields = new String[]{IngridQuery.PROVIDER};
         }/* else if (IngridQuery.GROUPED_BY_DATASOURCE.equalsIgnoreCase( groupedBy )) {
             // the necessary value id the results ID
         }*/
@@ -137,8 +140,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         IndexInfo[] indexInfos = this.config.activeIndices;
 
         if (indexInfos.length == 0) {
-            log.debug( "No configured index to search on!" );
-            return new IngridHits( 0, new IngridHit[0] );
+            log.debug("No configured index to search on!");
+            return new IngridHits(0, new IngridHit[0]);
         }
 
         // if we are remotely connected to an elasticsearch node then get the real indices of the aliases
@@ -147,105 +150,114 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         for (IndexInfo indexInfo : indexInfos) {
             String realIndex = indexManager.getIndexNameFromAliasName(
                     indexInfo.getToAlias(),
-                    indexInfo.getRealIndexName() == null ? indexInfo.getToAlias() : indexInfo.getRealIndexName() );
+                    indexInfo.getRealIndexName() == null ? indexInfo.getToAlias() : indexInfo.getRealIndexName());
 
             if (realIndex != null && !realIndices.contains(realIndex)) {
-                realIndices.add( realIndex );
+                realIndices.add(realIndex);
             }
         }
-        String[] realIndexNames = realIndices.toArray( new String[0] );
+        String[] realIndexNames = realIndices.toArray(new String[0]);
 
-        BoolQueryBuilder indexTypeFilter = queryBuilderService.createIndexTypeFilter( indexInfos );
+        BoolQuery.Builder indexTypeFilter = queryBuilderService.createIndexTypeFilter(indexInfos);
 
         // Filter for results only with location information
         if (isLocationSearch) {
-            BoolQueryBuilder boolShould = QueryBuilders.boolQuery();
-            boolShould.must().add(QueryBuilders.existsQuery( "x1" ));
-            indexTypeFilter.filter().add( boolShould );
+            BoolQuery.Builder boolShould = QueryBuilders.bool();
+            boolShould.must(QueryBuilders.exists(e -> e.field("x1")));
+            indexTypeFilter.filter(boolShould.build()._toQuery());
         }
 
+
         // search prepare
-        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( realIndexNames  )
+        SearchRequest.Builder srb = new SearchRequest.Builder()
+                .index(Arrays.asList(realIndexNames))
                 // .setQuery( config.indexEnableBoost ? funcScoreQuery : query ) // Query
-                .setQuery( config.indexEnableBoost
-                        ? QueryBuilders.boolQuery().must( funcScoreQuery ).must( indexTypeFilter )
-                        : QueryBuilders.boolQuery().must( query ).must( indexTypeFilter ) ) // Query
+                .query(config.indexEnableBoost
+                        ? QueryBuilders.bool().must(funcScoreQuery.build()._toQuery()).must(indexTypeFilter.build()._toQuery()).build()._toQuery()
+                        : QueryBuilders.bool().must(query.build()._toQuery()).must(indexTypeFilter.build()._toQuery()).build()._toQuery()) // Query
                 .storedFields("iPlugId")
-                .setFrom( startHit ).setSize( num ).setExplain( false );
+                .from(startHit).size(num).explain(false);
 
         // Add sort by date to ES query if appropriate
         String rankingType = ingridQuery.getRankingType();
-        if (rankingType != null && rankingType.equals( IngridQuery.DATE_RANKED )) {
-            srb.addSort(SortBuilders
-                    .fieldSort("modified")
-                    .order(SortOrder.DESC)
-                    .unmappedType("date"));
-            srb.addSort(SortBuilders
-                    .fieldSort("sort_hash")
-                    .order(SortOrder.ASC)
-                    .missing("_last")
-                    .unmappedType("keyword"));
+        if (rankingType != null && rankingType.equals(IngridQuery.DATE_RANKED)) {
+            srb.sort(List.of(
+                    SortOptions.of(so -> so
+                            .field(f -> f
+                                    .field("modified")
+                                    .order(SortOrder.Desc)
+                                    .unmappedType(FieldType.Date)
+                            )),
+                    SortOptions.of(so -> so
+                            .field(f -> f
+                                    .field("sort_hash")
+                                    .order(SortOrder.Asc)
+                                    .missing("_last")
+                                    .unmappedType(FieldType.Keyword)
+                            ))
+            ));
         } else {
-            srb.addSort(SortBuilders
-                    .scoreSort()
-                    .order(SortOrder.DESC));
-            srb.addSort(SortBuilders
-                    .fieldSort("sort_hash")
-                    .order(SortOrder.ASC)
-                    .missing("_last")
-                    .unmappedType("keyword"));
+            srb.sort(List.of(
+                    SortOptions.of(so -> so
+                            .score(s -> s.order(SortOrder.Desc))
+                    ),
+                    SortOptions.of(so -> so
+                            .field(f -> f
+                                    .field("sort_hash")
+                                    .order(SortOrder.Asc)
+                                    .missing("_last")
+                                    .unmappedType(FieldType.Keyword)
+                            ))
+            ));
         }
 
         if (fields == null) {
-            srb = srb.setFetchSource( false );
+            srb = srb.source(s -> s.fetch(false));
         } else {
-            srb = srb.storedFields( fields );
+            srb = srb.storedFields(List.of(fields));
         }
 
         // pre-processing: add facets/aggregations to the query
         if (hasFacets) {
-            List<AbstractAggregationBuilder> aggregations = facetConverter.getAggregations( ingridQuery );
-            for (AbstractAggregationBuilder aggregation : aggregations) {
-                srb.addAggregation( aggregation );
-            }
+            srb.aggregations(facetConverter.getAggregations(ingridQuery));
         }
 
-        if(config.trackTotalHits) {
-            srb.setTrackTotalHits(true);
+        if (config.trackTotalHits) {
+            srb.trackTotalHits(t -> t.enabled(true));
         }
 
         if (log.isDebugEnabled()) {
-            log.debug( "Final Elastic Search Query: \n" + srb );
+            log.debug("Final Elastic Search Query: \n" + srb);
         }
 
         // search!
         try {
-            SearchResponse searchResponse = srb.execute().actionGet();
+            SearchResponse<HashMap> searchResponse = indexManager.getClient().search(srb.build(), HashMap.class);
 
             // convert to IngridHits
-            IngridHits hits = getHitsFromResponse( searchResponse, ingridQuery );
+            IngridHits hits = getHitsFromResponse(searchResponse, ingridQuery);
 
             // post-processing: extract and convert facets to InGrid-Document
             if (hasFacets) {
                 // add facets from response
-                IngridDocument facets = facetConverter.convertFacetResultsToDoc( searchResponse );
-                hits.put( "FACETS", facets );
+                IngridDocument facets = facetConverter.convertFacetResultsToDoc(searchResponse);
+                hits.put("FACETS", facets);
             }
 
             return hits;
-        } catch (SearchPhaseExecutionException ex) {
-            log.error( "Search failed on indices: " + Arrays.toString(realIndexNames), ex );
-            return new IngridHits( 0, new IngridHit[0] );
+        } catch (IOException ex) {
+            log.error("Search failed on indices: " + Arrays.toString(realIndexNames), ex);
+            return new IngridHits(0, new IngridHit[0]);
         }
     }
 
     private boolean containsBoundingBox(IngridQuery ingridQuery) {
-        boolean found = ingridQuery.containsField( "x1" );
+        boolean found = ingridQuery.containsField("x1");
 
         // also try to look in clauses
         if (!found) {
             for (IngridQuery clause : ingridQuery.getAllClauses()) {
-                if (clause.containsField( "x1" )) {
+                if (clause.containsField("x1")) {
                     return true;
                 }
             }
@@ -256,62 +268,62 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     /**
      * Create InGrid hits from ES hits. Add grouping information.
      */
-    private IngridHits getHitsFromResponse(SearchResponse searchResponse, IngridQuery ingridQuery) {
-        for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
-            log.error( "Error searching in index: " + failure.reason() );
+    private IngridHits getHitsFromResponse(SearchResponse<HashMap> searchResponse, IngridQuery ingridQuery) {
+        for (ShardFailure failure : searchResponse.shards().failures()) {
+            log.error("Error searching in index: " + failure.reason());
         }
 
-        SearchHits hits = searchResponse.getHits();
+        HitsMetadata<HashMap> hits = searchResponse.hits();
 
         // the size will not be bigger than it was requested in the query with
         // 'num'
         // so we can convert from long to int here!
-        int length = hits.getHits().length;
-        long totalHits = hits.getTotalHits().value;
+        int length = hits.hits().size();
+        long totalHits = hits.total().value();
         IngridHit[] hitArray = new IngridHit[length];
         int pos = 0;
 
         if (log.isDebugEnabled()) {
-            log.debug( "Received " + length + " from " + totalHits + " hits." );
+            log.debug("Received " + length + " from " + totalHits + " hits.");
         }
 
         String groupBy = ingridQuery.getGrouped();
-        for (SearchHit hit : hits.getHits()) {
-            IngridHit ingridHit = new IngridHit( hit.field("iPlugId").getValue(), hit.getId(), -1, hit.getScore() );
-            ingridHit.put( ELASTIC_SEARCH_INDEX, hit.getIndex() );
-            ingridHit.put( ELASTIC_SEARCH_INDEX_TYPE, hit.getType() );
+        for (Hit<HashMap> hit : hits.hits()) {
+            IngridHit ingridHit = new IngridHit(hit.fields().get("iPlugId").to(String.class).toString(), hit.id(), -1, hit.score().floatValue());
+            ingridHit.put(ELASTIC_SEARCH_INDEX, hit.index());
+//            ingridHit.put( ELASTIC_SEARCH_INDEX_TYPE, hit.getType() );
 
             // get grouing information, add if exist
             String groupValue = null;
-            if (IngridQuery.GROUPED_BY_PARTNER.equalsIgnoreCase( groupBy )) {
-                DocumentField field = hit.field(IngridQuery.PARTNER);
+            if (IngridQuery.GROUPED_BY_PARTNER.equalsIgnoreCase(groupBy)) {
+                JsonData field = hit.fields().get(IngridQuery.PARTNER);
                 if (field != null) {
-                    groupValue = field.getValue().toString();
+                    groupValue = field.toString();
                 }
-            } else if (IngridQuery.GROUPED_BY_ORGANISATION.equalsIgnoreCase( groupBy )) {
-                DocumentField field = hit.field( IngridQuery.PROVIDER );
+            } else if (IngridQuery.GROUPED_BY_ORGANISATION.equalsIgnoreCase(groupBy)) {
+                JsonData field = hit.fields().get(IngridQuery.PROVIDER);
                 if (field != null) {
-                    groupValue = field.getValue().toString();
+                    groupValue = field.toString();
                 }
-            } else if (IngridQuery.GROUPED_BY_DATASOURCE.equalsIgnoreCase( groupBy )) {
+            } else if (IngridQuery.GROUPED_BY_DATASOURCE.equalsIgnoreCase(groupBy)) {
                 groupValue = config.communicationProxyUrl;
                 if (config.groupByUrl) {
                     try {
-                        groupValue = new URL( hit.getId() ).getHost();
+                        groupValue = new URL(hit.id()).getHost();
                     } catch (MalformedURLException e) {
-                        log.warn( "can not group url: " + groupValue, e );
+                        log.warn("can not group url: " + groupValue, e);
                     }
                 }
             }
             if (groupValue != null) {
-                ingridHit.addGroupedField( groupValue );
+                ingridHit.addGroupedField(groupValue);
             }
 
             hitArray[pos] = ingridHit;
             pos++;
         }
 
-        return new IngridHits((int) totalHits, hitArray );
+        return new IngridHits((int) totalHits, hitArray);
     }
 
     @Override
@@ -320,57 +332,69 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             requestedFields[i] = requestedFields[i].toLowerCase();
         }
         String documentId = hit.getDocumentId();
-        String fromIndex = hit.getString( ELASTIC_SEARCH_INDEX );
-        String fromType = hit.getString( ELASTIC_SEARCH_INDEX_TYPE );
+        String fromIndex = hit.getString(ELASTIC_SEARCH_INDEX);
+        String fromType = hit.getString(ELASTIC_SEARCH_INDEX_TYPE);
         String[] allFields = Stream
-                .concat( Arrays.stream( detailFields ), Arrays.stream( requestedFields ) )
+                .concat(Arrays.stream(detailFields), Arrays.stream(requestedFields))
                 .filter(Objects::nonNull)
                 .toArray(String[]::new);
 
         // We have to search here again, to get a highlighted summary of the result!
-        QueryBuilder query = QueryBuilders.boolQuery().must( QueryBuilders.matchQuery( IngridDocument.DOCUMENT_UID, documentId ) ).must( queryConverter.convert( ingridQuery ) );
+        BoolQuery.Builder query = QueryBuilders.bool()
+                .must(QueryBuilders.match(m -> m.field(IngridDocument.DOCUMENT_UID).query(documentId)))
+                .must(queryConverter.convert(ingridQuery).build()._toQuery());
 
         // search prepare
-        SearchRequestBuilder srb = indexManager.getClient().prepareSearch( fromIndex )
-                .setFetchSource(true)
-                .setQuery( query ) // Query
-                .setFrom( 0 )
-                .setSize( 1 )
-                .storedFields( allFields )
-                .setExplain( false );
+        SearchRequest.Builder srb = new SearchRequest.Builder()
+                .index(fromIndex)
+                .source(s -> s.fetch(true))
+                .query(query.build()._toQuery()) // Query
+                .from(0)
+                .size(1)
+                .storedFields(List.of(allFields))
+                .explain(false);
 
-        if(Arrays.asList(allFields).contains(config.indexFieldSummary)) {
-            srb = srb.highlighter( new HighlightBuilder().field(config.indexFieldSummary+"*") );
+        if (Arrays.asList(allFields).contains(config.indexFieldSummary)) {
+            srb = srb.highlight(Highlight.of(h -> h
+                    .fields("", HighlightField.of(hf -> hf
+                            .matchedFields(config.indexFieldSummary + "*"))
+                    )
+            ));
         }
 
-        SearchResponse searchResponse = srb.execute().actionGet();
+        SearchResponse<HashMap> searchResponse = null;
+        try {
+            searchResponse = indexManager.getClient().search(srb.build(), HashMap.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-        SearchHits dHits = searchResponse.getHits();
-        return createDetail(hit, dHits.getAt( 0 ), allFields);
+        HitsMetadata<HashMap> dHits = searchResponse.hits();
+        return createDetail(hit, dHits.hits().get(0), allFields);
     }
-    
-    private IngridHitDetail createDetail(IngridHit hit, SearchHit dHit, String[] requestedFields) {
+
+    private IngridHitDetail createDetail(IngridHit hit, Hit<HashMap> dHit, String[] requestedFields) {
 
         String title = "untitled";
-        if (dHit.field( config.indexFieldTitle ) != null) {
-            title = dHit.field( config.indexFieldTitle ).getValue();
+        if (dHit.fields().get(config.indexFieldTitle) != null) {
+            title = dHit.fields().get(config.indexFieldTitle).toString();
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
-        if (dHit.getHighlightFields().keySet().stream().anyMatch(k -> k.startsWith(config.indexFieldSummary))) {
+        if (dHit.highlight().keySet().stream().anyMatch(k -> k.startsWith(config.indexFieldSummary))) {
             List<String> stringFragments = new ArrayList<>();
-            for (Text fragment : dHit.getHighlightFields().entrySet().stream().filter(e -> e.getKey().startsWith(config.indexFieldSummary) ).findAny().get().getValue().fragments()) {
-                stringFragments.add( fragment.toString() );
+            for (String fragment : dHit.highlight().entrySet().stream().filter(e -> e.getKey().startsWith(config.indexFieldSummary)).findAny().get().getValue()) {
+                stringFragments.add(fragment.toString());
             }
-            summary = String.join( " ... ", stringFragments );
+            summary = String.join(" ... ", stringFragments);
             // otherwise get it from the original field
-        } else if (dHit.field( config.indexFieldSummary ) != null) {
-            summary = dHit.field( config.indexFieldSummary ).getValue();
+        } else if (dHit.fields().get(config.indexFieldSummary) != null) {
+            summary = dHit.fields().get(config.indexFieldSummary).toString();
         }
 
-        IngridHitDetail detail = new IngridHitDetail( hit, title, summary );
+        IngridHitDetail detail = new IngridHitDetail(hit, title, summary);
 
-        DocumentField dataSourceName = dHit.field(PlugDescription.DATA_SOURCE_NAME);
+        String dataSourceName = dHit.fields().get(PlugDescription.DATA_SOURCE_NAME).toString();
 
         if (dataSourceName == null) {
             log.error("The field dataSourceName could not be fetched from search index. This index field has to be stored! " +
@@ -378,29 +402,29 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             throw new RuntimeException("DataSourceName not found in SearchHit. Possibly wrong mapping where index field is not stored.");
         }
 
-        detail.setDataSourceName( dataSourceName.getValue().toString() );
-        detail.setArray( "datatype", getStringArrayFromSearchHit( dHit, "datatype" ) );
-        detail.setArray( PlugDescription.PARTNER, getStringArrayFromSearchHit( dHit, PlugDescription.PARTNER ) );
-        detail.setArray( PlugDescription.PROVIDER, getStringArrayFromSearchHit( dHit, PlugDescription.PROVIDER ) );
+        detail.setDataSourceName(dataSourceName);
+        detail.setArray("datatype", getStringArrayFromSearchHit(dHit, "datatype"));
+        detail.setArray(PlugDescription.PARTNER, getStringArrayFromSearchHit(dHit, PlugDescription.PARTNER));
+        detail.setArray(PlugDescription.PROVIDER, getStringArrayFromSearchHit(dHit, PlugDescription.PROVIDER));
 
-        detail.setDocumentId( hit.getDocumentId() );
+        detail.setDocumentId(hit.getDocumentId());
         for (String field : requestedFields) {
-            if(detail.get(field) == null) {
-                if (dHit.field(field) != null) {
-                    if (dHit.field(field).getValues() != null) {
-                        if (dHit.field(field).getValues().size() > 1) {
-                            detail.put(field, dHit.field(field).getValues());
+            if (detail.get(field) == null) {
+                if (dHit.fields().get(field) != null) {
+                    if (dHit.fields().get(field).toJson().asJsonArray() != null) {
+                        if (dHit.fields().get(field).toJson().asJsonArray().size() > 1) {
+                            detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
                         } else {
-                            if (dHit.field(field).getValue() instanceof String) {
-                                detail.put(field, new String[]{dHit.field(field).getValue()});
+                            if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
+                                detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
                             } else {
-                                detail.put(field, dHit.field(field).getValue());
+                                detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
                             }
                         }
-                    } else if (dHit.field(field).getValue() instanceof String) {
-                        detail.put(field, new String[]{dHit.field(field).getValue()});
+                    } else if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
+                        detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
                     } else {
-                        detail.put(field, dHit.field(field).getValue());
+                        detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
                     }
                 }
             }
@@ -408,23 +432,23 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         // add additional fields to detail object (such as url for iPlugSE)
         for (String extraDetail : config.additionalSearchDetailFields) {
-            DocumentField field = dHit.getFields().get( extraDetail );
+            JsonData field = dHit.fields().get(extraDetail);
             if (field != null) {
-                detail.put( extraDetail, field.getValue() );
+                detail.put(extraDetail, field.toJson());
             }
         }
 
         return detail;
     }
 
-    private String[] getStringArrayFromSearchHit(SearchHit hit, String field) {
-        DocumentField fieldObj = hit.field( field );
+    private String[] getStringArrayFromSearchHit(Hit<HashMap> hit, String field) {
+        List<String> fieldObj = hit.fields().get(field).to(List.class);
         if (fieldObj == null) {
-            log.warn( "SearchHit does not contain field: " + field );
+            log.warn("SearchHit does not contain field: " + field);
             return new String[0];
         }
 
-        return fieldObj.getValues().toArray(new String[0]);
+        return fieldObj.toArray(new String[0]);
     }
 
     @Override
@@ -475,9 +499,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
         List<IngridHitDetail> details = new ArrayList<>();
         for (IngridHit hit : hits) {
-            details.add( getDetail( hit, ingridQuery, requestedFields ) );
+            details.add(getDetail(hit, ingridQuery, requestedFields));
         }
-        return details.toArray( new IngridHitDetail[0] );
+        return details.toArray(new IngridHitDetail[0]);
     }
 
     @Override
@@ -494,21 +518,21 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     @Override
     public Record getRecord(IngridHit hit) {
         String documentId = hit.getDocumentId();
-        ElasticDocument document = indexManager.getDocById( documentId );
-        String[] fields = document.keySet().toArray( new String[0] );
+        ElasticDocument document = indexManager.getDocById(documentId);
+        String[] fields = document.keySet().toArray(new String[0]);
         Record record = new Record();
         for (String name : fields) {
-            Object stringValue = document.get( name );
+            Object stringValue = document.get(name);
             if (stringValue instanceof List) {
                 for (String item : (List<String>) stringValue) {
-                    Column column = new Column( null, name, null, true );
-                    column.setTargetName( name );
-                    record.addColumn( column, item );
+                    Column column = new Column(null, name, null, true);
+                    column.setTargetName(name);
+                    record.addColumn(column, item);
                 }
             } else {
-                Column column = new Column( null, name, null, true );
-                column.setTargetName( name );
-                record.addColumn( column, stringValue );
+                Column column = new Column(null, name, null, true);
+                column.setTargetName(name);
+                record.addColumn(column, stringValue);
             }
         }
         return record;
