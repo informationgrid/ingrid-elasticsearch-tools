@@ -66,9 +66,9 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
     private final ElasticConfig config;
 
-    private QueryConverter queryConverter;
+    private final QueryConverter queryConverter;
 
-    private FacetConverter facetConverter;
+    private final FacetConverter facetConverter;
 
     private static final String ELASTIC_SEARCH_INDEX = "es_index";
 
@@ -94,18 +94,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                         Arrays.stream(config.additionalSearchDetailFields))
                 .toArray(String[]::new);
 
-        try {
-            this.queryConverter = qc;
-            this.facetConverter = fc;
-
-            if (!config.esCommunicationThroughIBus) {
-                log.info("Elastic Search Settings: " + indexManager.printSettings());
-            }
-
-        } catch (Exception e) {
-            log.error("Error during initialization of ElasticSearch-Client!", e);
-        }
-
+        this.queryConverter = qc;
+        this.facetConverter = fc;
     }
 
     @SuppressWarnings("rawtypes")

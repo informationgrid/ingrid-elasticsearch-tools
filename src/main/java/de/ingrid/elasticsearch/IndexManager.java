@@ -48,12 +48,12 @@ import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.IngridDocument;
 import de.ingrid.utils.PlugDescription;
 import de.ingrid.utils.xml.XMLSerializer;
+import jakarta.annotation.PostConstruct;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -61,6 +61,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+
 
 /**
  * Utility class to manage elasticsearch indices and documents.
@@ -93,9 +94,12 @@ public class IndexManager implements IIndexManager {
 
         _client = esBean.getClient();
         _bulkProcessor = BulkIngester.of(bi -> bi
+                .client(_client)
                 .listener(getBulkProcessorListener())
-                .flushInterval(5l, TimeUnit.SECONDS)
+                .flushInterval(5L, TimeUnit.SECONDS)
+
         );
+        log.info("Elastic Search Settings: {}", printSettings());
     }
 
     /**
@@ -367,7 +371,7 @@ public class IndexManager implements IIndexManager {
 
         Map<String, IndexAliases> indexToAliasesMap;
         try {
-            indexToAliasesMap = _client.indices().getAlias(ar -> ar.name(indexAlias)).result();
+            indexToAliasesMap = _client.indices().getAlias(ar -> ar.index(indexAlias)).result();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -174,7 +174,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     @Override
     public String getIndexTypeIdentifier(IndexInfo indexInfo) {
-        return config.uuid + "=>" + indexInfo.getToIndex() + ":" + indexInfo.getToType();
+        return config.uuid + "=>" + indexInfo.getToIndex();
     }
 
     @Override
