@@ -17,7 +17,7 @@ public class WildcardFieldQueryConverter implements IQueryParsers {
     public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         WildCardFieldQuery[] wildFields = ingridQuery.getWildCardFieldQueries();
 
-        BoolQuery.Builder bq = new BoolQuery.Builder();
+        BoolQuery.Builder bq = null;
         boolean wasAndConnection = false;
 
         for (WildCardFieldQuery fieldQuery : wildFields) {
@@ -25,6 +25,8 @@ public class WildcardFieldQueryConverter implements IQueryParsers {
                     .field(fieldQuery.getFieldName())
                     .value(fieldQuery.getFieldValue())
             );
+
+            bq = new BoolQuery.Builder();
 
             if (fieldQuery.isRequred()) {
                 if (fieldQuery.isProhibited()) {
