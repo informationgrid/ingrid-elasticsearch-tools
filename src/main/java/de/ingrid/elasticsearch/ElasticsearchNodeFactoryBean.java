@@ -113,6 +113,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<Node>,
             for (TransportAddress addr : this.client.transportAddresses()) {
                 this.client.removeTransportAddress(addr);
             }
+            this.client.close();
         }
 
         if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
