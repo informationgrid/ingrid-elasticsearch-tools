@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class FuzzyQueryConverter implements IQueryParsers {
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         FuzzyTermQuery[] terms = ingridQuery.getFuzzyTermQueries();
 
         BoolQuery.Builder bq = new BoolQuery.Builder();
@@ -47,5 +47,6 @@ public class FuzzyQueryConverter implements IQueryParsers {
                 queryBuilder.should(bq.build()._toQuery());
             }
         }
+        return queryBuilder;
     }
 }

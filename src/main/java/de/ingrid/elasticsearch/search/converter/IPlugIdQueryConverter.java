@@ -38,7 +38,7 @@ import java.util.List;
 public class IPlugIdQueryConverter implements IQueryParsers {
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         String[] iplugs = ingridQuery.getIPlugs();
 
         if (iplugs != null && iplugs.length > 0) {
@@ -54,6 +54,7 @@ public class IPlugIdQueryConverter implements IQueryParsers {
 
             queryBuilder.must(bqBuilder.build()._toQuery());
         }
+        return queryBuilder;
     }
 
 }

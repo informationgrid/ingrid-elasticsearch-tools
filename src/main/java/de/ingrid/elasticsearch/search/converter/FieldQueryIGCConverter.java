@@ -55,7 +55,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
     @Override
     @SuppressWarnings("unchecked")
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         FieldQuery[] fields = ingridQuery.getFields();
 
         Map<String, Object> geoMap = new HashMap<>(fields.length);
@@ -122,6 +122,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
         prepareGeo(queryBuilder, geoMap);
         prepareTime(queryBuilder, timeMap);
+        return queryBuilder;
     }
 
     @SuppressWarnings("unchecked")

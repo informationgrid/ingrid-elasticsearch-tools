@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class RangeQueryConverter implements IQueryParsers {
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         de.ingrid.utils.query.RangeQuery[] rangeQueries = ingridQuery.getRangeQueries();
 
         BoolQuery.Builder bq = new BoolQuery.Builder();
@@ -57,5 +57,6 @@ public class RangeQueryConverter implements IQueryParsers {
                 queryBuilder.should(bq.build()._toQuery());
             }
         }
+        return queryBuilder;
     }
 }

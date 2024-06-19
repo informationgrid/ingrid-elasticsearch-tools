@@ -58,10 +58,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
     public void afterPropertiesSet() throws Exception {
         // only setup elastic nodes if indexing is enabled
         if (config.isEnabled) {
-            if (config.esCommunicationThroughIBus) {
-                // do not initialize Elasticsearch since we use central index!
-
-            } else {
+            if (!config.esCommunicationThroughIBus) {
                 if (log.isDebugEnabled()) {
                     log.debug("Elasticsearch: creating transport client: " + String.join(", ", config.remoteHosts));
                 }
@@ -77,25 +74,28 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
     }
 
     public void createTransportClient(ElasticConfig config) throws UnknownHostException {
+        if (this.client != null) {
+            client.shutdown();
+        }
 
-        List<HttpHost> hosts = new ArrayList();
+        List<HttpHost> hosts = new ArrayList<>();
         for (String host : config.remoteHosts) {
             hosts.add(HttpHost.create(host));
         }
 
         // Create the low-level client
         RestClient restClient = RestClient
-                .builder(HttpHost.create("http://localhost:9200"))
+                .builder(hosts.toArray(new HttpHost[0]))
 //                .setDefaultHeaders(new Header[]{
 //                        new BasicHeader("Authorization", "ApiKey " + apiKey)
 //                })
                 .build();
 
-// Create the transport with a Jackson mapper
+        // Create the transport with a Jackson mapper
         ElasticsearchTransport transport = new RestClientTransport(
                 restClient, new JacksonJsonpMapper());
 
-// And create the API client
+        // And create the API client
         client = new ElasticsearchClient(transport);
     }
 

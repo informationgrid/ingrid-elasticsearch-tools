@@ -10,7 +10,7 @@ import de.ingrid.utils.query.IngridQuery;
 public class FieldQueryConverter implements IQueryParsers {
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         FieldQuery[] fields = ingridQuery.getFields();
 
         BoolQuery.Builder bq = new BoolQuery.Builder();
@@ -43,5 +43,6 @@ public class FieldQueryConverter implements IQueryParsers {
                 queryBuilder.should(bq.build()._toQuery());
             }
         }
+        return queryBuilder;
     }
 }

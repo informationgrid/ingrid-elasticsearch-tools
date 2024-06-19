@@ -29,6 +29,7 @@ import de.ingrid.elasticsearch.search.facets.FacetClassDefinition;
 import de.ingrid.elasticsearch.search.facets.FacetDefinition;
 import de.ingrid.elasticsearch.search.facets.FacetUtils;
 import de.ingrid.elasticsearch.search.facets.IFacetDefinitionProcessor;
+import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.IngridDocument;
 import de.ingrid.utils.query.IngridQuery;
 import de.ingrid.utils.queryparser.ParseException;
@@ -92,7 +93,7 @@ public class FacetConverter {
         return aggregations;
     }
 
-    public IngridDocument convertFacetResultsToDoc(SearchResponse<HashMap> response) {
+    public IngridDocument convertFacetResultsToDoc(SearchResponse<ElasticDocument> response) {
         IngridDocument facets = new IngridDocument();
         Map<String, Aggregate> aggregations = response.aggregations();
 

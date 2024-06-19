@@ -43,7 +43,7 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
     }
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         TermQuery[] terms = ingridQuery.getTerms();
 
         BoolQuery.Builder bq = new BoolQuery.Builder();
@@ -115,5 +115,6 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
                 }
             }
         }
+        return queryBuilder;
     }
 }

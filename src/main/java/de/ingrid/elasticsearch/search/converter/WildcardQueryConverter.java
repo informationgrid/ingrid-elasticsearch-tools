@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class WildcardQueryConverter implements IQueryParsers {
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         WildCardTermQuery[] terms = ingridQuery.getWildCardTermQueries();
 
         BoolQuery.Builder bq = new BoolQuery.Builder();
@@ -47,5 +47,6 @@ public class WildcardQueryConverter implements IQueryParsers {
                 queryBuilder.should(bq.build()._toQuery());
             }
         }
+        return queryBuilder;
     }
 }

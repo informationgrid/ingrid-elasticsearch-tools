@@ -41,7 +41,7 @@ public class DatatypePartnerProviderQueryConverter implements IQueryParsers {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         final List<FieldQuery> dataTypes = (List<FieldQuery>)(List<?>)ingridQuery.getArrayList(IngridQuery.DATA_TYPE);
         final List<FieldQuery> partner = (List<FieldQuery>)(List<?>)ingridQuery.getArrayList(IngridQuery.PARTNER);
         final List<FieldQuery> provider = (List<FieldQuery>)(List<?>)ingridQuery.getArrayList(IngridQuery.PROVIDER);
@@ -67,5 +67,6 @@ public class DatatypePartnerProviderQueryConverter implements IQueryParsers {
                 queryBuilder.should(bq.build()._toQuery());
             }
         }
+        return queryBuilder;
     }
 }

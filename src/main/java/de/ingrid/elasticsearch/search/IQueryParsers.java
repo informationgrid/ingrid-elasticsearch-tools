@@ -27,6 +27,6 @@ import de.ingrid.utils.query.IngridQuery;
 
 public interface IQueryParsers {
 
-    void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder);
+    BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder);
 
 }

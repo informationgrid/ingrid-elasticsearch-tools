@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class GlobalQueryConverter implements IQueryParsers {
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         TermQuery[] terms = ingridQuery.getTerms();
 
         BoolQuery.Builder bq = new BoolQuery.Builder();
@@ -37,5 +37,6 @@ public class GlobalQueryConverter implements IQueryParsers {
                 queryBuilder.should(bq.build()._toQuery());
             }
         }
+        return queryBuilder;
     }
 }

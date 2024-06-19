@@ -99,7 +99,7 @@ public class IndexManager implements IIndexManager {
                 .flushInterval(5L, TimeUnit.SECONDS)
 
         );
-        log.info("Elastic Search Settings: {}", printSettings());
+//        log.info("Elastic Search Settings: {}", printSettings());
     }
 
     /**

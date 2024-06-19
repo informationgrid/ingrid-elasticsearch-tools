@@ -216,13 +216,14 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             srb.trackTotalHits(t -> t.enabled(true));
         }
 
+        SearchRequest searchRequest = srb.build();
         if (log.isDebugEnabled()) {
-            log.debug("Final Elastic Search Query: \n" + srb);
+            log.debug("Final Elastic Search Query: \n" + searchRequest);
         }
 
         // search!
         try {
-            SearchResponse<HashMap> searchResponse = indexManager.getClient().search(srb.build(), HashMap.class);
+            SearchResponse<ElasticDocument> searchResponse = indexManager.getClient().search(searchRequest, ElasticDocument.class);
 
             // convert to IngridHits
             IngridHits hits = getHitsFromResponse(searchResponse, ingridQuery);
@@ -258,12 +259,12 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     /**
      * Create InGrid hits from ES hits. Add grouping information.
      */
-    private IngridHits getHitsFromResponse(SearchResponse<HashMap> searchResponse, IngridQuery ingridQuery) {
+    private IngridHits getHitsFromResponse(SearchResponse<ElasticDocument> searchResponse, IngridQuery ingridQuery) {
         for (ShardFailure failure : searchResponse.shards().failures()) {
             log.error("Error searching in index: " + failure.reason());
         }
 
-        HitsMetadata<HashMap> hits = searchResponse.hits();
+        HitsMetadata<ElasticDocument> hits = searchResponse.hits();
 
         // the size will not be bigger than it was requested in the query with
         // 'num'
@@ -278,8 +279,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
 
         String groupBy = ingridQuery.getGrouped();
-        for (Hit<HashMap> hit : hits.hits()) {
-            IngridHit ingridHit = new IngridHit(hit.fields().get("iPlugId").to(String.class).toString(), hit.id(), -1, hit.score().floatValue());
+        for (Hit<ElasticDocument> hit : hits.hits()) {
+            IngridHit ingridHit = new IngridHit(hit.fields().get("iPlugId").to(List.class).get(0).toString(), hit.id(), -1, hit.score().floatValue());
             ingridHit.put(ELASTIC_SEARCH_INDEX, hit.index());
 //            ingridHit.put( ELASTIC_SEARCH_INDEX_TYPE, hit.getType() );
 
@@ -367,7 +368,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         String title = "untitled";
         if (dHit.fields().get(config.indexFieldTitle) != null) {
-            title = dHit.fields().get(config.indexFieldTitle).toString();
+            title = getFieldValue(dHit.fields().get(config.indexFieldTitle));
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
@@ -379,7 +380,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             summary = String.join(" ... ", stringFragments);
             // otherwise get it from the original field
         } else if (dHit.fields().get(config.indexFieldSummary) != null) {
-            summary = dHit.fields().get(config.indexFieldSummary).toString();
+            summary = getFieldValue(dHit.fields().get(config.indexFieldSummary));
         }
 
         IngridHitDetail detail = new IngridHitDetail(hit, title, summary);
@@ -403,18 +404,18 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                 if (dHit.fields().get(field) != null) {
                     if (dHit.fields().get(field).toJson().asJsonArray() != null) {
                         if (dHit.fields().get(field).toJson().asJsonArray().size() > 1) {
-                            detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
+                            detail.put(field, dHit.fields().get(field).to(List.class));
                         } else {
                             if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
-                                detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
+                                detail.put(field, dHit.fields().get(field).to(String.class));
                             } else {
-                                detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
+                                detail.put(field, getFieldValue(dHit.fields().get(field)));
                             }
                         }
                     } else if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
-                        detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
+                        detail.put(field, dHit.fields().get(field).to(String.class));
                     } else {
-                        detail.put(field, dHit.fields().get(field).toJson().asJsonArray());
+                        detail.put(field, getFieldValue(dHit.fields().get(field)));
                     }
                 }
             }
@@ -429,6 +430,10 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
 
         return detail;
+    }
+
+    private String getFieldValue(JsonData jsonData) {
+        return jsonData.to(List.class).get(0).toString();
     }
 
     private String[] getStringArrayFromSearchHit(Hit<HashMap> hit, String field) {

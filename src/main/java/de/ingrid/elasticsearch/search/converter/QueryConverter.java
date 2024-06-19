@@ -52,12 +52,10 @@ public class QueryConverter implements IQueryParsers {
                 qb.should(res.build()._toQuery());
             }
         }
-        parse(ingridQuery, qb);
-
-        return qb;
+        return parse(ingridQuery, qb);
     }
 
-    public void parse(IngridQuery ingridQuery, BoolQuery.Builder booleanQuery) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder booleanQuery) {
         if (log.isDebugEnabled()) {
             log.debug("incoming ingrid query:" + ingridQuery.toString());
         }
@@ -77,25 +75,10 @@ public class QueryConverter implements IQueryParsers {
                 originSubQuery.should(QueryBuilders.matchPhrase(m -> m.field(field.getKey()).query(origin).boost(field.getValue())));
             }
             if (booleanQuery.hasClauses()) {
-                BoolQuery.Builder subQuery = new BoolQuery.Builder();
-
-                BoolQuery boolQueryBuilt = booleanQuery.build();
-                subQuery.should(boolQueryBuilt.should());
-                boolQueryBuilt.should().clear();
-
-                subQuery.must(boolQueryBuilt.must());
-                boolQueryBuilt.must().clear();
-
-                subQuery.mustNot(boolQueryBuilt.mustNot());
-                boolQueryBuilt.mustNot().clear();
-
-                subQuery.filter(boolQueryBuilt.filter());
-                boolQueryBuilt.filter().clear();
-
-                originSubQuery.should(subQuery.build()._toQuery());
+                return new BoolQuery.Builder().should(originSubQuery.build()._toQuery(), booleanQuery.build()._toQuery());
             }
-            booleanQuery.should(originSubQuery.build()._toQuery());
         }
+        return booleanQuery;
     }
 
     /**
