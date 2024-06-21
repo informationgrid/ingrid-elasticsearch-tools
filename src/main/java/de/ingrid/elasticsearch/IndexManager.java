@@ -38,6 +38,7 @@ import co.elastic.clients.elasticsearch.core.bulk.IndexOperation;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.DeleteIndexRequest;
 import co.elastic.clients.elasticsearch.indices.get_alias.IndexAliases;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
@@ -234,7 +235,7 @@ public class IndexManager implements IIndexManager {
 
     public void deleteIndex(String index) {
         try {
-            _client.delete(DeleteRequest.of(d -> d.index(index)));
+            _client.indices().delete(DeleteIndexRequest.of(d -> d.index(index)));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -585,10 +586,12 @@ public class IndexManager implements IIndexManager {
             if (totalHits == 1) {
                 docId = hits.hits().get(0).id();
                 // add index request to queue to avoid sending of too many requests
-                _bulkProcessor.add(BulkOperation.of(b -> b.index(ur -> ur
-                        .index("ingrid_meta")
-                        .id(docId)
-                        .document(info))));
+                _bulkProcessor.add(BulkOperation.of(op -> op
+                        .update(idx -> idx
+                            .index("ingrid_meta")
+                            .id(docId)
+                            .action(a -> a.doc(info))
+                        )));
             } else if (totalHits == 0) {
                 // create document immediately so that it's available for further requests
                 try {
