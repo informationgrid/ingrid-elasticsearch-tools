@@ -34,7 +34,7 @@ public class ElasticConfig {
     @Value("${elastic.enabled:true}")
     public boolean isEnabled;
 
-    @Value("${elastic.remoteHosts:localhost:9300}")
+    @Value("${elastic.remoteHosts:localhost:9200}")
     public String[] remoteHosts;
 
     @Value("${elastic.indexWithAutoId:true}")
