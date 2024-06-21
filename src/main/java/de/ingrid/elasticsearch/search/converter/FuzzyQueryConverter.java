@@ -17,13 +17,14 @@ public class FuzzyQueryConverter implements IQueryParsers {
     public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         FuzzyTermQuery[] terms = ingridQuery.getFuzzyTermQueries();
 
-        BoolQuery.Builder bq = new BoolQuery.Builder();
+        BoolQuery.Builder bq = null;
 
         if (terms.length > 0) {
             for (FuzzyTermQuery term : terms) {
                 Query subQuery = QueryBuilders.queryString(q -> q.query(term.getTerm() + "~"));
 
                 if (term.isRequred()) {
+                    if (bq == null) bq = new BoolQuery.Builder();
                     if (term.isProhibited()) {
                         bq.mustNot(subQuery);
                     } else {

@@ -17,7 +17,7 @@ public class RangeQueryConverter implements IQueryParsers {
     public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         de.ingrid.utils.query.RangeQuery[] rangeQueries = ingridQuery.getRangeQueries();
 
-        BoolQuery.Builder bq = new BoolQuery.Builder();
+        BoolQuery.Builder bq = null;
 
         for (de.ingrid.utils.query.RangeQuery rangeQuery : rangeQueries) {
 
@@ -35,6 +35,7 @@ public class RangeQueryConverter implements IQueryParsers {
             )._toQuery();
 
             if (rangeQuery.isRequred()) {
+                if (bq == null) bq = new BoolQuery.Builder();
                 if (rangeQuery.isProhibited()) {
                     bq.mustNot(subQuery);
                 } else {

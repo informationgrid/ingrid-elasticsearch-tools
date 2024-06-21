@@ -26,9 +26,8 @@ public class WildcardFieldQueryConverter implements IQueryParsers {
                     .value(fieldQuery.getFieldValue())
             );
 
-            bq = new BoolQuery.Builder();
-
             if (fieldQuery.isRequred()) {
+                if (bq == null) bq = new BoolQuery.Builder();
                 if (fieldQuery.isProhibited()) {
                     bq.mustNot(subQuery);
                 } else {
@@ -36,6 +35,12 @@ public class WildcardFieldQueryConverter implements IQueryParsers {
                 }
                 wasAndConnection = true;
             } else {
+                // if it's an OR-connection then the currently built query must become a sub-query
+                // so that the AND/OR connection is correctly transformed. In case there was an
+                // AND-connection before, the transformation would become:
+                // OR( (term1 AND term2), term3)
+                if (bq == null) bq = new BoolQuery.Builder();
+
                 if (!wasAndConnection) {
                     bq.should(subQuery);
                 } else {

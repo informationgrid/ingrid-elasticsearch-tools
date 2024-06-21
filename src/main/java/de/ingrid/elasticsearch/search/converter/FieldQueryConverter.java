@@ -13,13 +13,14 @@ public class FieldQueryConverter implements IQueryParsers {
     public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         FieldQuery[] fields = ingridQuery.getFields();
 
-        BoolQuery.Builder bq = new BoolQuery.Builder();
+        BoolQuery.Builder bq = null;
 
         for (FieldQuery fieldQuery : fields) {
 
             Query subQuery = QueryBuilders.match(m -> m.field(fieldQuery.getFieldName()).query(fieldQuery.getFieldValue()));
 
             if (fieldQuery.isRequred()) {
+                if (bq == null) bq = new BoolQuery.Builder();
                 if (fieldQuery.isProhibited()) {
                     bq.mustNot(subQuery);
                 } else {
