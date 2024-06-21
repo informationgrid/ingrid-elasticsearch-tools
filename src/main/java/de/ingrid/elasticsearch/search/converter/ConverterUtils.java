@@ -56,13 +56,13 @@ public class ConverterUtils {
 
                 // if bq top type == "should" then add it, otherwise wrap it around
                 // the type should be always at the same position!
-                String bqString = bq.build().toString();
-                if (bqString.contains("\"should\"")) {
+//                String bqString = bq.build().toString();
+//                if (bqString.contains("\"should\"")) {
                     bq.should(subQuery);
-                } else {
-                    parentBq.should(bq.build()._toQuery()).should(subQuery);
-                    bq = parentBq;
-                }
+//                } else {
+//                    parentBq.should(bq.build()._toQuery()).should(subQuery);
+//                    bq = parentBq;
+//                }
             }
         }
 

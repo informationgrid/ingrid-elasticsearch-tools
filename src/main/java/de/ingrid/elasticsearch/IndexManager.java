@@ -40,9 +40,6 @@ import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.get_alias.IndexAliases;
 import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
-import co.elastic.clients.elasticsearch.indices.update_aliases.Action;
-import co.elastic.clients.elasticsearch.indices.update_aliases.AddAction;
-import co.elastic.clients.elasticsearch.indices.update_aliases.RemoveAction;
 import co.elastic.clients.json.JsonData;
 import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.IngridDocument;
@@ -51,6 +48,7 @@ import de.ingrid.utils.xml.XMLSerializer;
 import jakarta.annotation.PostConstruct;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -79,12 +77,13 @@ public class IndexManager implements IIndexManager {
     private BulkIngester<String> _bulkProcessor;
 
     @Autowired
-    private ElasticsearchNodeFactoryBean esBean;
-
-
-    @Autowired
-    public IndexManager(ElasticConfig config) {
+    public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
         _config = config;
+
+        // do not initialize when using central index
+        if (config.esCommunicationThroughIBus) return;
+
+        _client = elastic.getClient();
     }
 
     @PostConstruct
@@ -92,7 +91,6 @@ public class IndexManager implements IIndexManager {
         // do not initialize when using central index
         if (_config.esCommunicationThroughIBus) return;
 
-        _client = esBean.getClient();
         _bulkProcessor = BulkIngester.of(bi -> bi
                 .client(_client)
                 .listener(getBulkProcessorListener())
@@ -205,10 +203,9 @@ public class IndexManager implements IIndexManager {
 
     public void addToAlias(String aliasName, String newIndex) {
         try {
-            _client.indices().updateAliases(ua -> ua.actions(Action.of(a -> a
-                    .add(AddAction.of(add -> add
-                            .alias(aliasName)
-                            .index(newIndex))))));
+            _client.indices().putAlias(add -> add
+                    .name(aliasName)
+                    .index(newIndex));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -219,10 +216,10 @@ public class IndexManager implements IIndexManager {
         while (indexNameFromAliasName != null) {
 
             try {
-                _client.indices().updateAliases(ua -> ua.actions(Action.of(a -> a
-                        .remove(RemoveAction.of(rem -> rem
-                                .alias(aliasName)
-                                .index(index))))));
+                String finalIndexNameFromAliasName = indexNameFromAliasName;
+                _client.indices().deleteAlias(rem -> rem
+                        .name(aliasName)
+                        .index(finalIndexNameFromAliasName));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -369,9 +366,10 @@ public class IndexManager implements IIndexManager {
      */
     public String getIndexNameFromAliasName(String indexAlias, String partialName) {
 
-        Map<String, IndexAliases> indexToAliasesMap;
+        Map<String, IndexAliases> indexToAliasesMap = null;
         try {
-            indexToAliasesMap = _client.indices().getAlias(ar -> ar.index(indexAlias)).result();
+            boolean aliasExists = _client.indices().existsAlias(exists -> exists.name(indexAlias)).value();
+            if (aliasExists) indexToAliasesMap = _client.indices().getAlias(ar -> ar.name(indexAlias)).result();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -550,17 +548,17 @@ public class IndexManager implements IIndexManager {
             log.warn("There are more than 2 documents found for indexId starting with " + uuid);
         }
         hits.hits().forEach(hit -> {
-            _bulkProcessor.add(BulkOperation.of(b -> b.update(ur -> ur
+            _bulkProcessor.add(BulkOperation.of(b -> b.index(ur -> ur
                     .index("ingrid_meta")
                     .id(hit.id())
-                    .action(a -> a.upsert(jsonData))))
+                    .document(jsonData)))
             );
         });
 
     }
 
     @Override
-    public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
+    public void updateIPlugInformation(String id, JSONObject info) throws InterruptedException, ExecutionException {
         synchronized (this) {
             String docId;
 
@@ -587,10 +585,10 @@ public class IndexManager implements IIndexManager {
             if (totalHits == 1) {
                 docId = hits.hits().get(0).id();
                 // add index request to queue to avoid sending of too many requests
-                _bulkProcessor.add(BulkOperation.of(b -> b.update(ur -> ur
+                _bulkProcessor.add(BulkOperation.of(b -> b.index(ur -> ur
                         .index("ingrid_meta")
                         .id(docId)
-                        .action(a -> a.upsert(info)))));
+                        .document(info))));
             } else if (totalHits == 0) {
                 // create document immediately so that it's available for further requests
                 try {
@@ -615,17 +613,17 @@ public class IndexManager implements IIndexManager {
 
                 // add first hit, which we did not delete
                 _bulkProcessor.add(BulkOperation.of(b -> b
-                        .update(u -> u
+                        .index(u -> u
                                 .index("ingrid_meta")
                                 .id(searchHits.get(0).id())
-                                .action(a -> a.upsert(info))))
+                                .document(info)))
                 );
             }
         }
     }
 
     @Override
-    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws ExecutionException {
+    public void updateHearbeatInformation(Map<String, JSONObject> iPlugIdInfos) throws ExecutionException {
         checkAndCreateInformationIndex();
         for (String id : iPlugIdInfos.keySet()) {
             try {
@@ -686,7 +684,9 @@ public class IndexManager implements IIndexManager {
         // iterate over all indices until document was found
         for (IndexInfo indexName : indexNames) {
             try {
-                Map<String, Object> source = _client.get(g -> g.index(indexName.getRealIndexName()).id(idAsString)
+                Map<String, Object> source = _client.get(g -> g
+                                .index(indexName.getRealIndexName())
+                                .id(idAsString)
                                 .source(s -> s.fields(List.of(_config.indexFieldsIncluded.split(","))))
                         , ElasticDocument.class).source();
 

@@ -61,7 +61,7 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         Map<String, Object> geoMap = new HashMap<>(fields.length);
         Map<String, Object> timeMap = new HashMap<>(fields.length);
 
-        BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+        BoolQuery.Builder bqBuilder = null;
 
         for (FieldQuery fieldQuery : fields) {
             Query subQuery;

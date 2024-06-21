@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutionException;
 
 import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.PlugDescription;
+import org.json.simple.JSONObject;
 
 public interface IIndexManager {
 
@@ -47,7 +48,7 @@ public interface IIndexManager {
 
     void updatePlugDescription(PlugDescription plugDescription) throws IOException;
 
-    void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException;
+    void updateIPlugInformation(String id, JSONObject info) throws InterruptedException, ExecutionException;
 
     void flush();
 
@@ -61,7 +62,7 @@ public interface IIndexManager {
 
     String getDefaultSettings();
 
-    void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
+    void updateHearbeatInformation(Map<String, JSONObject> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
 
     void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);
 

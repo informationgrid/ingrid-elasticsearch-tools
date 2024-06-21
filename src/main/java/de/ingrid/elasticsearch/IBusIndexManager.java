@@ -33,6 +33,7 @@ import de.ingrid.utils.*;
 import de.ingrid.utils.query.IngridQuery;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONObject;
 import org.springframework.stereotype.Service;
 
 import de.ingrid.ibus.client.BusClient;
@@ -201,12 +202,12 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public void updatePlugDescription(PlugDescription plugDescription) throws IOException {
+    public void updatePlugDescription(PlugDescription plugDescription) {
         log.warn("Not implemented");
     }
 
     @Override
-    public void updateIPlugInformation(String id, String info) throws InterruptedException, ExecutionException {
+    public void updateIPlugInformation(String id, JSONObject info) {
         IngridCall call = prepareCall( "updateIPlugInformation" );
         Map<String, Object> map = new HashMap<>();
         map.put( "id", id );
@@ -298,7 +299,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public void updateHearbeatInformation(Map<String, String> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException {
+    public void updateHearbeatInformation(Map<String, JSONObject> iPlugIdInfos) {
         IngridCall call = prepareCall( "updateHearbeatInformation" );
         call.setParameter(iPlugIdInfos);
 
@@ -414,7 +415,6 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     /**
      * Simplify creation of IngridCall object.
-     * @param method
      * @return
      */
     private IngridCall prepareCall(String method) {

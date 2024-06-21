@@ -31,10 +31,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Highlight;
-import co.elastic.clients.elasticsearch.core.search.HighlightField;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.elasticsearch.core.search.HitsMetadata;
+import co.elastic.clients.elasticsearch.core.search.*;
 import co.elastic.clients.json.JsonData;
 import de.ingrid.elasticsearch.ElasticConfig;
 import de.ingrid.elasticsearch.IndexInfo;
@@ -347,24 +344,24 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         if (Arrays.asList(allFields).contains(config.indexFieldSummary)) {
             srb = srb.highlight(Highlight.of(h -> h
-                    .fields("", HighlightField.of(hf -> hf
-                            .matchedFields(config.indexFieldSummary + "*"))
-                    )
+//                    .type(HighlighterType.Unified)
+                    .fields(config.indexFieldSummary+"*", HighlightField.of(hf -> hf))
             ));
         }
 
-        SearchResponse<HashMap> searchResponse = null;
+        SearchResponse<ElasticDocument> searchResponse = null;
         try {
-            searchResponse = indexManager.getClient().search(srb.build(), HashMap.class);
+            SearchRequest build = srb.build();
+            searchResponse = indexManager.getClient().search(build, ElasticDocument.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        HitsMetadata<HashMap> dHits = searchResponse.hits();
+        HitsMetadata<ElasticDocument> dHits = searchResponse.hits();
         return createDetail(hit, dHits.hits().get(0), allFields);
     }
 
-    private IngridHitDetail createDetail(IngridHit hit, Hit<HashMap> dHit, String[] requestedFields) {
+    private IngridHitDetail createDetail(IngridHit hit, Hit<ElasticDocument> dHit, String[] requestedFields) {
 
         String title = "untitled";
         if (dHit.fields().get(config.indexFieldTitle) != null) {
@@ -425,7 +422,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         for (String extraDetail : config.additionalSearchDetailFields) {
             JsonData field = dHit.fields().get(extraDetail);
             if (field != null) {
-                detail.put(extraDetail, field.toJson());
+                detail.put(extraDetail, getFieldValue(field));
             }
         }
 
@@ -436,13 +433,13 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         return jsonData.to(List.class).get(0).toString();
     }
 
-    private String[] getStringArrayFromSearchHit(Hit<HashMap> hit, String field) {
-        List<String> fieldObj = hit.fields().get(field).to(List.class);
-        if (fieldObj == null) {
-            log.warn("SearchHit does not contain field: " + field);
+    private String[] getStringArrayFromSearchHit(Hit<ElasticDocument> hit, String field) {
+        JsonData jsonField = hit.fields().get(field);
+        if (jsonField == null) {
+            log.warn("SearchHit does not contain field: {}", field);
             return new String[0];
         }
-
+        List<String> fieldObj = jsonField.to(List.class);
         return fieldObj.toArray(new String[0]);
     }
 
