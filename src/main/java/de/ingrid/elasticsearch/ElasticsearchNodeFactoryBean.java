@@ -29,14 +29,35 @@ import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,7 +94,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
         return client;
     }
 
-    public void createTransportClient(ElasticConfig config) throws UnknownHostException {
+    public void createTransportClient(ElasticConfig config) throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException, CertificateException {
         if (this.client != null) {
             client.shutdown();
         }
@@ -83,12 +104,36 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
             hosts.add(HttpHost.create(host));
         }
 
+        final CredentialsProvider credentialsProvider = getCredentialsProvider(config);
+
+        SSLContext sslContext;
+        if (config.sslTransport.equals("true")) {
+
+            Path caCertificatePath = Paths.get("elasticsearch-ca.pem");
+            CertificateFactory factory = CertificateFactory.getInstance("X.509");
+            Certificate trustedCa;
+            try (InputStream is = Files.newInputStream(caCertificatePath)) {
+                trustedCa = factory.generateCertificate(is);
+            }
+            KeyStore trustStore = KeyStore.getInstance("pkcs12");
+            trustStore.load(null, null);
+            trustStore.setCertificateEntry("ca", trustedCa);
+            SSLContextBuilder sslContextBuilder = SSLContexts.custom()
+                    .loadTrustMaterial(trustStore, null);
+            sslContext = sslContextBuilder.build();
+        } else {
+            sslContext = null;
+        }
+
         // Create the low-level client
         RestClient restClient = RestClient
                 .builder(hosts.toArray(new HttpHost[0]))
-//                .setDefaultHeaders(new Header[]{
-//                        new BasicHeader("Authorization", "ApiKey " + apiKey)
-//                })
+                .setHttpClientConfigCallback(httpClientBuilder -> {
+                            if (credentialsProvider != null) httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider); else httpClientBuilder.setDefaultCredentialsProvider(null);
+                            if (sslContext != null) httpClientBuilder.setSSLContext(sslContext); else httpClientBuilder.setSSLContext(null);
+                            return httpClientBuilder;
+                        }
+                )
                 .build();
 
         // Create the transport with a Jackson mapper
@@ -97,6 +142,15 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
 
         // And create the API client
         client = new ElasticsearchClient(transport);
+    }
+
+    private static CredentialsProvider getCredentialsProvider(ElasticConfig config) {
+        if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
+            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY,
+                    new UsernamePasswordCredentials(config.username, config.password));
+            return credentialsProvider;
+        } else return null;
     }
 
 
