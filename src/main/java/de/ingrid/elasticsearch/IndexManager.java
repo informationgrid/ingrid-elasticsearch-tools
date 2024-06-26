@@ -525,7 +525,7 @@ public class IndexManager implements IIndexManager {
     private IngridDocument mapIPlugInformatioToIngridDocument(Hit<ElasticDocument> hit) {
         IngridDocument doc = new IngridDocument();
 
-        Map<String, JsonData> sourceAsMap = hit.fields();
+        ElasticDocument sourceAsMap = hit.source();
         doc.put("plugId", sourceAsMap.get("plugId"));
         doc.put("name", sourceAsMap.get("iPlugName"));
         doc.put("plugdescription", sourceAsMap.get("plugdescription"));
