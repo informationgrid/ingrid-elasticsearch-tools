@@ -129,8 +129,8 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
         RestClient restClient = RestClient
                 .builder(hosts.toArray(new HttpHost[0]))
                 .setHttpClientConfigCallback(httpClientBuilder -> {
-                            if (credentialsProvider != null) httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider); else httpClientBuilder.setDefaultCredentialsProvider(null);
-                            if (sslContext != null) httpClientBuilder.setSSLContext(sslContext); else httpClientBuilder.setSSLContext(null);
+                            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                            httpClientBuilder.setSSLContext(sslContext);
                             return httpClientBuilder;
                         }
                 )
