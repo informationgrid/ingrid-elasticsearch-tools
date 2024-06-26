@@ -1,49 +1,29 @@
-/*
- * **************************************************-
- * ingrid-iplug-se-iplug
- * ==================================================
- * Copyright (C) 2014 - 2024 wemove digital solutions GmbH
- * ==================================================
- * Licensed under the EUPL, Version 1.2 or – as soon they will be
- * approved by the European Commission - subsequent versions of the
- * EUPL (the "Licence");
- * 
- * You may not use this work except in compliance with the Licence.
- * You may obtain a copy of the Licence at:
- * 
- * https://joinup.ec.europa.eu/software/page/eupl
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the Licence is distributed on an "AS IS" basis,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the Licence for the specific language governing permissions and
- * limitations under the Licence.
- * **************************************************#
- */
 package de.ingrid.elasticsearch.search.converter;
+
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
+import de.ingrid.elasticsearch.ElasticConfig;
+import de.ingrid.elasticsearch.search.IQueryParsers;
+import de.ingrid.utils.query.IngridQuery;
+import de.ingrid.utils.query.TermQuery;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.index.query.*;
-import org.elasticsearch.index.query.MultiMatchQueryBuilder.Type;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Service;
-
-import de.ingrid.elasticsearch.ElasticConfig;
-import de.ingrid.elasticsearch.search.IQueryParsers;
-import de.ingrid.utils.query.IngridQuery;
-import de.ingrid.utils.query.TermQuery;
-
 @Service
 @Order(1)
 public class DefaultFieldsQueryConverter implements IQueryParsers {
 
+    private static final Logger log = LogManager.getLogger(DefaultFieldsQueryConverter.class);
+
     private Map<String, Float> fieldBoosts;
-    
+
     @Autowired
     public DefaultFieldsQueryConverter(ElasticConfig config) {
         fieldBoosts = getFieldBoostMap(config.indexSearchDefaultFields);
@@ -51,105 +31,90 @@ public class DefaultFieldsQueryConverter implements IQueryParsers {
 
     private Map<String, Float> getFieldBoostMap(String[] indexSearchDefaultFields) {
         Map<String, Float> result = new HashMap<>();
-        for (String field:indexSearchDefaultFields) {
-            if(field.contains("^")){
+        for (String field : indexSearchDefaultFields) {
+            if (field.contains("^")) {
                 String[] split = field.split("\\^");
                 result.put(split[0], Float.parseFloat(split[1]));
-            }
-            else{
-                result.put(field, Float.valueOf(1.0F));
+            } else {
+                result.put(field, 1.0F);
             }
         }
         return result;
     }
 
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         TermQuery[] terms = ingridQuery.getTerms();
 
-        BoolQueryBuilder bq = null;//QueryBuilders.boolQuery();
-        
+        BoolQuery.Builder bq = new BoolQuery.Builder();
+
         if (terms.length > 0) {
             List<String> termsAnd = new ArrayList<>();
             List<String> termsOr = new ArrayList<>();
             for (TermQuery term : terms) {
                 String t = term.getTerm();
-                QueryBuilder subQuery;
+                Query subQuery = null;
 
                 // if it's a phrase
-                if (t.contains( " " )) {
-                    subQuery = QueryBuilders.boolQuery();
+                if (t.contains(" ")) {
+                    BoolQuery.Builder phraseQuery = new BoolQuery.Builder();
                     for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
-                        ((BoolQueryBuilder)subQuery).should( QueryBuilders.matchPhraseQuery( field.getKey(), t ).boost(field.getValue()) );
+                        phraseQuery.should(QueryBuilders.matchPhrase(m -> m.field(field.getKey()).query(t).boost(field.getValue())));
                     }
-                // in case a term was not identified as a wildcard-term, e.g. "Deutsch*"
-                } else if (t.contains( "*" )) {
-                    subQuery = QueryBuilders.boolQuery();
-                    ((BoolQueryBuilder)subQuery).should( QueryBuilders.queryStringQuery( t ) );
-                    
+                    subQuery = phraseQuery.build()._toQuery();
+                } else if (t.contains("*")) {
+                    subQuery = QueryBuilders.queryString(q -> q.query(t));
                 } else if (term.isProhibited()) {
-                    subQuery = QueryBuilders.multiMatchQuery( t, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts);
-                    
+                    subQuery = QueryBuilders.multiMatch(m -> m.query(t).fields(List.of(fieldBoosts.keySet().toArray(new String[0]))));
                 } else {
-                
-                    // only add term to the correct list, so that the whole terms will be matched correctly
-                    // even with stopwords filtered!!!
                     if (term.isRequred()) {
-                        termsAnd.add( t );
-                    } else { 
-                        termsOr.add( t );
+                        termsAnd.add(t);
+                    } else {
+                        termsOr.add(t);
                     }
-                    
                     continue;
                 }
-                
+
                 if (term.isRequred()) {
-                    if (bq == null) bq = QueryBuilders.boolQuery();
                     if (term.isProhibited()) {
-                        bq.mustNot( subQuery );
-                    } else {                        
-                        bq.must( subQuery );
-                    }
-                    
-                } else {
-                    // if it's an OR-connection then the currently built query must become a sub-query
-                    // so that the AND/OR connection is correctly transformed. In case there was an
-                    // AND-connection before, the transformation would become:
-                    // OR( (term1 AND term2), term3)
-                    if (bq == null) {
-                        bq = QueryBuilders.boolQuery();
-                        bq.should( subQuery );
-                        
+                        bq.mustNot(subQuery);
                     } else {
-                        BoolQueryBuilder parentBq = QueryBuilders.boolQuery();
-                        parentBq.should( bq ).should( subQuery );
-                        bq = parentBq;
+                        bq.must(subQuery);
                     }
-                    
+                } else {
+                    BoolQuery.Builder parentBq = new BoolQuery.Builder();
+                    parentBq.should(bq.build()._toQuery()).should(subQuery);
+                    bq = parentBq;
                 }
             }
 
             if (!termsAnd.isEmpty()) {
-                String join = String.join( " ", termsAnd );
-                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts).operator(Operator.AND).type( Type.CROSS_FIELDS );
-                if (bq == null) bq = QueryBuilders.boolQuery();
-                bq.should( subQuery );
+                String join = String.join(" ", termsAnd);
+                MultiMatchQuery subQuery = MultiMatchQuery.of(m -> m
+                        .query(join)
+                        .fields(List.of(fieldBoosts.keySet().toArray(new String[0])))
+                        .operator(Operator.And)
+                        .type(TextQueryType.CrossFields));
+                bq.should(subQuery._toQuery());
             }
             if (!termsOr.isEmpty()) {
-                String join = String.join( " ", termsOr );
-                MultiMatchQueryBuilder subQuery = QueryBuilders.multiMatchQuery( join, fieldBoosts.keySet().toArray(new String[]{})).fields(fieldBoosts).operator( Operator.OR ).type( Type.CROSS_FIELDS );
-                if (bq == null) bq = QueryBuilders.boolQuery();
-                bq.should( subQuery );
+                String join = String.join(" ", termsOr);
+                MultiMatchQuery subQuery = MultiMatchQuery.of(m -> m
+                        .query(join)
+                        .fields(List.of(fieldBoosts.keySet().toArray(new String[0])))
+                        .operator(Operator.Or)
+                        .type(TextQueryType.CrossFields));
+                bq.should(subQuery._toQuery());
             }
 
-            if(bq != null) {
+            if (bq != null) {
                 if (terms.length > 0 && terms[0].isRequred()) {
-                    queryBuilder.must(bq);
+                    queryBuilder.must(bq.build()._toQuery());
                 } else {
-                    queryBuilder.should(bq);
+                    queryBuilder.should(bq.build()._toQuery());
                 }
             }
         }
+        return queryBuilder;
     }
-    
 }
