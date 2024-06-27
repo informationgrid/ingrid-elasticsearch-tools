@@ -17,10 +17,10 @@ public class RangeQueryConverter implements IQueryParsers {
     public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         de.ingrid.utils.query.RangeQuery[] rangeQueries = ingridQuery.getRangeQueries();
 
-        BoolQuery.Builder bq = null;
 
         for (de.ingrid.utils.query.RangeQuery rangeQuery : rangeQueries) {
 
+            BoolQuery.Builder bq = new BoolQuery.Builder();
             String from = rangeQuery.getRangeFrom();
             from = from.endsWith("*") ? from.substring(0, from.length() - 1) : from;
             String to = rangeQuery.getRangeTo();
@@ -35,21 +35,21 @@ public class RangeQueryConverter implements IQueryParsers {
             )._toQuery();
 
             if (rangeQuery.isRequred()) {
-                if (bq == null) bq = new BoolQuery.Builder();
+//                bq = new BoolQuery.Builder();
                 if (rangeQuery.isProhibited()) {
                     bq.mustNot(subQuery);
                 } else {
                     bq.must(subQuery);
                 }
             } else {
-                if (bq == null) {
-                    bq = new BoolQuery.Builder();
+//                if (bq == null) {
+//                    bq = new BoolQuery.Builder();
                     bq.should(subQuery);
-                } else {
-                    BoolQuery.Builder parentBq = new BoolQuery.Builder();
-                    parentBq.should(bq.build()._toQuery()).should(subQuery);
-                    bq = parentBq;
-                }
+//                } else {
+//                    BoolQuery.Builder parentBq = new BoolQuery.Builder();
+//                    parentBq.should(bq.build()._toQuery()).should(subQuery);
+//                    bq = parentBq;
+//                }
             }
 
             if (rangeQuery.isRequred()) {
