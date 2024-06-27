@@ -6,9 +6,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import de.ingrid.elasticsearch.search.IQueryParsers;
 import de.ingrid.utils.query.IngridQuery;
 import de.ingrid.utils.query.TermQuery;
-import org.springframework.stereotype.Service;
 
-@Service
 public class GlobalQueryConverter implements IQueryParsers {
 
     @Override
