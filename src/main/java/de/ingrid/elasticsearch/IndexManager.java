@@ -49,6 +49,8 @@ import de.ingrid.utils.xml.XMLSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -626,15 +628,20 @@ public class IndexManager implements IIndexManager {
     }
 
     @Override
-    public void updateHearbeatInformation(Map<String, JSONObject> iPlugIdInfos) throws ExecutionException {
+    public void updateHearbeatInformation(Map<String, Object> iPlugIdInfos) throws ExecutionException {
         checkAndCreateInformationIndex();
         for (String id : iPlugIdInfos.keySet()) {
             try {
-                updateIPlugInformation(id, iPlugIdInfos.get(id));
-//            } catch (IndexNotFoundException ex) {
-//                log.warn( "Index for iPlug information not found ... creating: " + id );
+                Object info = iPlugIdInfos.get(id);
+                JSONObject json;
+                if (info instanceof String) {
+                    json = (JSONObject) new JSONParser().parse((String) info);
+                } else json = (JSONObject) info;
+                updateIPlugInformation(id, json);
             } catch (InterruptedException ex) {
                 log.warn("updateHearbeatInformation was interrupted for ID: " + id);
+            } catch (ParseException e) {
+                log.warn("updateHearbeatInformation could not be parsed for ID: " + id + " and content: " + iPlugIdInfos.get(id));
             }
         }
     }

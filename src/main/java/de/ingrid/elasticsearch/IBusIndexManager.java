@@ -299,7 +299,7 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
     }
 
     @Override
-    public void updateHearbeatInformation(Map<String, JSONObject> iPlugIdInfos) {
+    public void updateHearbeatInformation(Map<String, Object> iPlugIdInfos) {
         IngridCall call = prepareCall( "updateHearbeatInformation" );
         call.setParameter(iPlugIdInfos);
 

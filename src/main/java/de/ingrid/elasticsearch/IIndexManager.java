@@ -62,7 +62,7 @@ public interface IIndexManager {
 
     String getDefaultSettings();
 
-    void updateHearbeatInformation(Map<String, JSONObject> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
+    void updateHearbeatInformation(Map<String, Object> iPlugIdInfos) throws InterruptedException, ExecutionException, IOException;
 
     void delete(IndexInfo indexinfo, String id, boolean updateOldIndex);
 
