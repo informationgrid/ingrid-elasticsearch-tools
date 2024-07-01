@@ -73,7 +73,8 @@ import java.util.concurrent.TimeUnit;
 public class IndexManager implements IIndexManager {
     private static final Logger log = LogManager.getLogger(IndexManager.class);
 
-    private ElasticConfig _config;
+    private final ElasticsearchNodeFactoryBean elastic;
+    private final ElasticConfig _config;
 
     private ElasticsearchClient _client;
 
@@ -81,12 +82,9 @@ public class IndexManager implements IIndexManager {
 
     @Autowired
     public IndexManager(ElasticsearchNodeFactoryBean elastic, ElasticConfig config) {
+        this.elastic = elastic;
         _config = config;
 
-        // do not initialize when using central index
-        if (config.esCommunicationThroughIBus) return;
-
-        _client = elastic.getClient();
     }
 
     @PostConstruct
@@ -94,6 +92,7 @@ public class IndexManager implements IIndexManager {
         // do not initialize when using central index
         if (_config.esCommunicationThroughIBus) return;
 
+        _client = elastic.getClient();
         _bulkProcessor = BulkIngester.of(bi -> bi
                 .client(_client)
                 .listener(getBulkProcessorListener())
@@ -244,7 +243,7 @@ public class IndexManager implements IIndexManager {
     }
 
     public String[] getIndices(String filter) {
-        List<IndicesRecord> indicesRecords = null;
+        List<IndicesRecord> indicesRecords;
         try {
             indicesRecords = this._client.cat().indices().valueBody();
         } catch (IOException e) {
@@ -474,7 +473,7 @@ public class IndexManager implements IIndexManager {
 
 
     public IngridDocument getAllIPlugInformation() {
-        SearchResponse<ElasticDocument> response = null;
+        SearchResponse<ElasticDocument> response;
         try {
             response = _client.search(s -> s
                             .index("ingrid_meta")
@@ -500,7 +499,7 @@ public class IndexManager implements IIndexManager {
     }
 
     public IngridDocument getIPlugInformation(String plugId) {
-        SearchResponse<ElasticDocument> response = null;
+        SearchResponse<ElasticDocument> response;
         try {
             response = _client.search(s -> s
                             .index("ingrid_meta")
@@ -566,7 +565,7 @@ public class IndexManager implements IIndexManager {
             String docId;
 
             // the iPlugDocIdMap can lead to problems if a wrong ID was stored once, then the iBus has to be restarted
-            SearchResponse<ElasticDocument> response = null;
+            SearchResponse<ElasticDocument> response;
             try {
                 response = _client.search(s -> s
                                 .index("ingrid_meta")
