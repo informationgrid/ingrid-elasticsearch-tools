@@ -25,6 +25,7 @@ package de.ingrid.elasticsearch;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
+import co.elastic.clients.transport.TransportUtils;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -33,11 +34,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
 import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -46,18 +43,8 @@ import org.springframework.stereotype.Service;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -94,7 +81,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
         return client;
     }
 
-    public void createTransportClient(ElasticConfig config) throws IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException, CertificateException {
+    public void createTransportClient(ElasticConfig config) throws IOException {
         if (this.client != null) {
             client.shutdown();
         }
@@ -108,29 +95,19 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
 
         SSLContext sslContext;
         if ("true".equals(config.sslTransport)) {
-
             Path caCertificatePath = Paths.get("elasticsearch-ca.pem");
-            CertificateFactory factory = CertificateFactory.getInstance("X.509");
-            Certificate trustedCa;
-            try (InputStream is = Files.newInputStream(caCertificatePath)) {
-                trustedCa = factory.generateCertificate(is);
-            }
-            KeyStore trustStore = KeyStore.getInstance("pkcs12");
-            trustStore.load(null, null);
-            trustStore.setCertificateEntry("ca", trustedCa);
-            SSLContextBuilder sslContextBuilder = SSLContexts.custom()
-                    .loadTrustMaterial(trustStore, null);
-            sslContext = sslContextBuilder.build();
+            sslContext = TransportUtils.sslContextFromHttpCaCrt(caCertificatePath.toFile());
         } else {
             sslContext = null;
         }
 
         // Create the low-level client
+        SSLContext finalSslContext = sslContext;
         RestClient restClient = RestClient
                 .builder(hosts.toArray(new HttpHost[0]))
                 .setHttpClientConfigCallback(httpClientBuilder -> {
                             httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            httpClientBuilder.setSSLContext(sslContext);
+                            httpClientBuilder.setSSLContext(finalSslContext);
                             return httpClientBuilder;
                         }
                 )
@@ -164,7 +141,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
     }
 
     @Override
-    public ElasticsearchClient getObject() throws Exception {
+    public ElasticsearchClient getObject() {
         return client;
     }
 
