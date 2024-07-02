@@ -214,10 +214,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         String y2 = (String) geoMap.get("y2");
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
-            queryBuilder.mustNot(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x1)))))
-                    .mustNot(QueryBuilders.range(r -> r.field("x2").gte(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0))))
-                    .mustNot(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y1)))))
-                    .mustNot(QueryBuilders.range(r -> r.field("y2").gte(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0))));
+            queryBuilder.mustNot(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(-180.0)).lt(JsonData.of(Double.valueOf(x1)))))
+                    .mustNot(QueryBuilders.range(r -> r.field("x2").gt(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0))))
+                    .mustNot(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(-180.0)).lt(JsonData.of(Double.valueOf(y1)))))
+                    .mustNot(QueryBuilders.range(r -> r.field("y2").gt(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0))));
         }
     }
 
