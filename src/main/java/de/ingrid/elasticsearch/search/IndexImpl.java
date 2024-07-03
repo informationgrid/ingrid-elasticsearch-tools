@@ -365,7 +365,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         String title = "untitled";
         if (dHit.fields().get(config.indexFieldTitle) != null) {
-            title = getFieldValue(dHit.fields().get(config.indexFieldTitle));
+            title = getStringValue(dHit.fields().get(config.indexFieldTitle));
         }
         String summary = "";
         // try to get the summary first from the highlighted fields
@@ -377,7 +377,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             summary = String.join(" ... ", stringFragments);
             // otherwise get it from the original field
         } else if (dHit.fields().get(config.indexFieldSummary) != null) {
-            summary = getFieldValue(dHit.fields().get(config.indexFieldSummary));
+            summary = getStringValue(dHit.fields().get(config.indexFieldSummary));
         }
 
         IngridHitDetail detail = new IngridHitDetail(hit, title, summary);
@@ -404,15 +404,15 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                             detail.put(field, dHit.fields().get(field).to(List.class));
                         } else {
                             if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
-                                detail.put(field, dHit.fields().get(field).to(String.class));
+                                detail.put(field, new String[]{dHit.fields().get(field).to(String.class)});
                             } else {
-                                detail.put(field, getFieldValue(dHit.fields().get(field)));
+                                detail.put(field, dHit.fields().get(field).to(List.class));
                             }
                         }
                     } else if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
-                        detail.put(field, dHit.fields().get(field).to(String.class));
+                        detail.put(field, new String[]{dHit.fields().get(field).to(String.class)});
                     } else {
-                        detail.put(field, getFieldValue(dHit.fields().get(field)));
+                        detail.put(field, dHit.fields().get(field).to(List.class));
                     }
                 }
             }
@@ -422,14 +422,14 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         for (String extraDetail : config.additionalSearchDetailFields) {
             JsonData field = dHit.fields().get(extraDetail);
             if (field != null) {
-                detail.put(extraDetail, getFieldValue(field));
+                detail.put(extraDetail, field.to(List.class));
             }
         }
 
         return detail;
     }
 
-    private String getFieldValue(JsonData jsonData) {
+    private String getStringValue(JsonData jsonData) {
         return jsonData.to(List.class).get(0).toString();
     }
 
