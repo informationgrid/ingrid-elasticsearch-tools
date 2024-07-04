@@ -399,19 +399,11 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             if (detail.get(field) == null) {
                 if (dHit.fields().get(field) != null) {
                     if (dHit.fields().get(field).toJson().asJsonArray() != null) {
-                        if (dHit.fields().get(field).toJson().asJsonArray().size() > 1) {
-                            detail.put(field, dHit.fields().get(field).to(List.class));
-                        } else {
-                            if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
-                                detail.put(field, new String[]{dHit.fields().get(field).to(String.class)});
-                            } else {
-                                detail.put(field, dHit.fields().get(field).to(List.class));
-                            }
-                        }
+                        detail.put(field, getStringArrayFromSearchHit(dHit, field));
                     } else if (dHit.fields().get(field).toJson().getValueType() == JsonValue.ValueType.STRING) {
                         detail.put(field, new String[]{dHit.fields().get(field).to(String.class)});
                     } else {
-                        detail.put(field, dHit.fields().get(field).to(List.class));
+                        detail.put(field, getStringArrayFromSearchHit(dHit, field));
                     }
                 }
             }
@@ -440,8 +432,18 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
             log.warn("SearchHit does not contain field: {}", field);
             return new String[0];
         }
-        List<String> fieldObj = jsonField.to(List.class);
-        return fieldObj.toArray(new String[0]);
+        List<Object> fieldObj = jsonField.to(List.class);
+        String[] array = new String[fieldObj.size()];
+
+        for (int i = 0; i < fieldObj.size(); i++) {
+            Object element = fieldObj.get(i);
+            if (element instanceof String) {
+                array[i] = (String) element;
+            } else {
+                array[i] = element.toString();
+            }
+        }
+        return array;
     }
 
     @Override
