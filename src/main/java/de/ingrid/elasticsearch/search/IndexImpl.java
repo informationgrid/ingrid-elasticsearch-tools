@@ -321,7 +321,6 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
         String documentId = hit.getDocumentId();
         String fromIndex = hit.getString(ELASTIC_SEARCH_INDEX);
-        String fromType = hit.getString(ELASTIC_SEARCH_INDEX_TYPE);
         String[] allFields = Stream
                 .concat(Arrays.stream(detailFields), Arrays.stream(requestedFields))
                 .filter(Objects::nonNull)
@@ -420,6 +419,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         // add additional fields to detail object (such as url for iPlugSE)
         for (String extraDetail : config.additionalSearchDetailFields) {
+            if (detail.containsKey(extraDetail)) continue;
+
             JsonData field = dHit.fields().get(extraDetail);
             if (field != null) {
                 detail.put(extraDetail, field.to(List.class));
