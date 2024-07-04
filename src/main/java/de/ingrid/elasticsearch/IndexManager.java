@@ -597,6 +597,8 @@ public class IndexManager implements IIndexManager {
                 // create document immediately so that it's available for further requests
                 try {
                     _client.index(IndexRequest.of(ir -> ir.index("ingrid_meta").document(info)));
+                    // make sure created plugInfo is updated to prevent duplicates
+                    refreshIndex("ingrid_meta");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
