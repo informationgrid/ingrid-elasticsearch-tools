@@ -1,6 +1,6 @@
-/*
+/*-
  * **************************************************-
- * ingrid-iplug-se-iplug
+ * InGrid Elasticsearch Tools
  * ==================================================
  * Copyright (C) 2014 - 2024 wemove digital solutions GmbH
  * ==================================================
@@ -22,63 +22,54 @@
  */
 package de.ingrid.elasticsearch.search.converter;
 
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Service;
-
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import de.ingrid.elasticsearch.search.IQueryParsers;
 import de.ingrid.utils.query.IngridQuery;
 import de.ingrid.utils.query.WildCardTermQuery;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
 
 @Service
 @Order(5)
 public class WildcardQueryConverter implements IQueryParsers {
-    
+
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
         WildCardTermQuery[] terms = ingridQuery.getWildCardTermQueries();
 
-        BoolQueryBuilder bq = null;
-        
+        BoolQuery.Builder bq = null;
+
         if (terms.length > 0) {
-            
             for (WildCardTermQuery term : terms) {
-                QueryBuilder subQuery = QueryBuilders.queryStringQuery( term.getTerm() );
-                
+                Query subQuery = QueryBuilders.queryString(q -> q.query(term.getTerm()));
+
                 if (term.isRequred()) {
-                    if (bq == null) bq = QueryBuilders.boolQuery();
+                    if (bq == null) bq = new BoolQuery.Builder();
                     if (term.isProhibited()) {
-                        bq.mustNot( subQuery );
-                    } else {                        
-                        bq.must( subQuery );
-                    }
-                    
-                } else {
-                    // if it's an OR-connection then the currently built query must become a sub-query
-                    // so that the AND/OR connection is correctly transformed. In case there was an
-                    // AND-connection before, the transformation would become:
-                    // OR( (term1 AND term2), term3)
-                    if (bq == null) {
-                        bq = QueryBuilders.boolQuery();
-                        bq.should( subQuery );
-                        
+                        bq.mustNot(subQuery);
                     } else {
-                        BoolQueryBuilder parentBq = QueryBuilders.boolQuery();
-                        parentBq.should( bq ).should( subQuery );
+                        bq.must(subQuery);
+                    }
+                } else {
+                    if (bq == null) {
+                        bq = new BoolQuery.Builder();
+                        bq.should(subQuery);
+                    } else {
+                        BoolQuery.Builder parentBq = new BoolQuery.Builder();
+                        parentBq.should(bq.build()._toQuery()).should(subQuery);
                         bq = parentBq;
                     }
-                    
                 }
             }
-                
+
             if (terms[0].isRequred()) {
-                queryBuilder.must( bq );
+                queryBuilder.must(bq.build()._toQuery());
             } else {
-                queryBuilder.should( bq );
+                queryBuilder.should(bq.build()._toQuery());
             }
-        
         }
+        return queryBuilder;
     }
 }

@@ -1,6 +1,6 @@
-/*
+/*-
  * **************************************************-
- * ingrid-iplug-se-iplug
+ * InGrid Elasticsearch Tools
  * ==================================================
  * Copyright (C) 2014 - 2024 wemove digital solutions GmbH
  * ==================================================
@@ -22,71 +22,64 @@
  */
 package de.ingrid.elasticsearch.search.converter;
 
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Service;
-
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import co.elastic.clients.json.JsonData;
 import de.ingrid.elasticsearch.search.IQueryParsers;
 import de.ingrid.utils.query.IngridQuery;
-import de.ingrid.utils.query.RangeQuery;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Service;
 
 @Service
 @Order(4)
 public class RangeQueryConverter implements IQueryParsers {
-    
+
     @Override
-    public void parse(IngridQuery ingridQuery, BoolQueryBuilder queryBuilder) {
-        RangeQuery[] rangeQueries = ingridQuery.getRangeQueries();
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder queryBuilder) {
+        de.ingrid.utils.query.RangeQuery[] rangeQueries = ingridQuery.getRangeQueries();
 
-        BoolQueryBuilder bq = null;
-        
-        for (RangeQuery rangeQuery : rangeQueries) {
-            
+
+        for (de.ingrid.utils.query.RangeQuery rangeQuery : rangeQueries) {
+
+            BoolQuery.Builder bq = new BoolQuery.Builder();
             String from = rangeQuery.getRangeFrom();
-            from = from.endsWith( "*" ) ? from.substring( 0, from.length()-1 ) : from;
+            from = from.endsWith("*") ? from.substring(0, from.length() - 1) : from;
             String to = rangeQuery.getRangeTo();
-            to = to.endsWith( "*" ) ? to.substring( 0, to.length()-1 ) : to;
-            
-            
-            QueryBuilder subQuery = QueryBuilders.rangeQuery( rangeQuery.getRangeName() )
-                    .from( from )
-                    .to( to )
-                    .includeLower( true )
-                    .includeUpper( true );
-            
-            if (rangeQuery.isRequred()) {
-                if (bq == null) bq = QueryBuilders.boolQuery();
-                if (rangeQuery.isProhibited()) {
-                    bq.mustNot( subQuery );
-                } else {                        
-                    bq.must( subQuery );
-                }
-                
-            } else {
-                // if it's an OR-connection then the currently built query must become a sub-query
-                // so that the AND/OR connection is correctly transformed. In case there was an
-                // AND-connection before, the transformation would become:
-                // OR( (term1 AND term2), term3)
-                if (bq == null) {
-                    bq = QueryBuilders.boolQuery();
-                    bq.should( subQuery );
-                    
-                } else {
-                    BoolQueryBuilder parentBq = QueryBuilders.boolQuery();
-                    parentBq.should( bq ).should( subQuery );
-                    bq = parentBq;
-                }
-                
-            }
-            if (rangeQuery.isRequred()) {
-                queryBuilder.must( bq );
-            } else {
-                queryBuilder.should( bq );
-            }
-        
-        }
-    }
+            to = to.endsWith("*") ? to.substring(0, to.length() - 1) : to;
 
+            String finalFrom = from;
+            String finalTo = to;
+            Query subQuery = RangeQuery.of(r -> r
+                    .field(rangeQuery.getRangeName())
+                    .gte(JsonData.of(finalFrom))
+                    .lte(JsonData.of(finalTo))
+            )._toQuery();
+
+            if (rangeQuery.isRequred()) {
+//                bq = new BoolQuery.Builder();
+                if (rangeQuery.isProhibited()) {
+                    bq.mustNot(subQuery);
+                } else {
+                    bq.must(subQuery);
+                }
+            } else {
+//                if (bq == null) {
+//                    bq = new BoolQuery.Builder();
+                    bq.should(subQuery);
+//                } else {
+//                    BoolQuery.Builder parentBq = new BoolQuery.Builder();
+//                    parentBq.should(bq.build()._toQuery()).should(subQuery);
+//                    bq = parentBq;
+//                }
+            }
+
+            if (rangeQuery.isRequred()) {
+                queryBuilder.must(bq.build()._toQuery());
+            } else {
+                queryBuilder.should(bq.build()._toQuery());
+            }
+        }
+        return queryBuilder;
+    }
 }

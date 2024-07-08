@@ -1,6 +1,6 @@
-/*
+/*-
  * **************************************************-
- * ingrid-iplug-se-iplug
+ * InGrid Elasticsearch Tools
  * ==================================================
  * Copyright (C) 2014 - 2024 wemove digital solutions GmbH
  * ==================================================
@@ -22,35 +22,25 @@
  */
 package de.ingrid.elasticsearch.search.converter;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
+import de.ingrid.elasticsearch.ElasticConfig;
+import de.ingrid.elasticsearch.search.IQueryParsers;
+import de.ingrid.utils.query.ClauseQuery;
+import de.ingrid.utils.query.IngridQuery;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.lucene.search.function.CombineFunction;
-import org.elasticsearch.common.lucene.search.function.FieldValueFactorFunction.Modifier;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
-import org.elasticsearch.index.query.functionscore.FieldValueFactorFunctionBuilder;
-import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import de.ingrid.elasticsearch.ElasticConfig;
-import de.ingrid.elasticsearch.search.IQueryParsers;
-import de.ingrid.utils.query.ClauseQuery;
-import de.ingrid.utils.query.IngridQuery;
-
-import static org.elasticsearch.index.query.QueryBuilders.functionScoreQuery;
-
 @Service
 public class QueryConverter implements IQueryParsers {
 
-    private static Logger log = LogManager.getLogger( QueryConverter.class );
+    private static final Logger log = LogManager.getLogger(QueryConverter.class);
 
     @Autowired
     private List<IQueryParsers> _queryConverter;
@@ -62,36 +52,32 @@ public class QueryConverter implements IQueryParsers {
 
     public QueryConverter() {
         _queryConverter = new ArrayList<>();
-        fieldBoosts = getFieldBoostMap(new String[] {"title^10", "summary^2","content"});
+        fieldBoosts = getFieldBoostMap(new String[]{"title^10", "summary^2", "content"});
     }
 
     public void setQueryParsers(List<IQueryParsers> parsers) {
         this._queryConverter = parsers;
     }
 
-    public BoolQueryBuilder convert(IngridQuery ingridQuery) {
-
-        BoolQueryBuilder qb = QueryBuilders.boolQuery();
+    public BoolQuery.Builder convert(IngridQuery ingridQuery) {
+        BoolQuery.Builder qb = new BoolQuery.Builder();
 
         ClauseQuery[] clauses = ingridQuery.getClauses();
         for (ClauseQuery clauseQuery : clauses) {
-            final BoolQueryBuilder res = convert(clauseQuery);
+            final BoolQuery.Builder res = convert(clauseQuery);
             if (clauseQuery.isRequred()) {
                 if (clauseQuery.isProhibited())
-                    qb.mustNot( res );
+                    qb.mustNot(res.build()._toQuery());
                 else
-                    qb.must( res );
+                    qb.must(res.build()._toQuery());
             } else {
-                qb.should( res );
+                qb.should(res.build()._toQuery());
             }
         }
-        parse(ingridQuery, qb);
-
-        return qb;
-
+        return parse(ingridQuery, qb);
     }
 
-    public void parse(IngridQuery ingridQuery, BoolQueryBuilder booleanQuery) {
+    public BoolQuery.Builder parse(IngridQuery ingridQuery, BoolQuery.Builder booleanQuery) {
         if (log.isDebugEnabled()) {
             log.debug("incoming ingrid query:" + ingridQuery.toString());
         }
@@ -106,128 +92,119 @@ public class QueryConverter implements IQueryParsers {
         }
         String origin = (String) ingridQuery.get(IngridQuery.ORIGIN);
         if (origin != null && !origin.isEmpty()) {
-            BoolQueryBuilder originSubQuery = QueryBuilders.boolQuery();
+            BoolQuery.Builder originSubQuery = new BoolQuery.Builder();
             for (Map.Entry<String, Float> field : fieldBoosts.entrySet()) {
-                originSubQuery.should( QueryBuilders.matchPhraseQuery( field.getKey(), origin ).boost(field.getValue()) );
+                originSubQuery.should(QueryBuilders.matchPhrase(m -> m.field(field.getKey()).query(origin).boost(field.getValue())));
             }
-            if(booleanQuery.hasClauses()){
-                BoolQueryBuilder subQuery = QueryBuilders.boolQuery();
-
-                subQuery.should().addAll(booleanQuery.should());
-                booleanQuery.should().clear();
-
-                subQuery.must().addAll(booleanQuery.must());
-                booleanQuery.must().clear();
-
-                subQuery.mustNot().addAll(booleanQuery.mustNot());
-                booleanQuery.mustNot().clear();
-
-                subQuery.filter().addAll(booleanQuery.filter());
-                booleanQuery.filter().clear();
-
-                originSubQuery.should(subQuery);
+            if (booleanQuery.hasClauses()) {
+                return new BoolQuery.Builder().should(originSubQuery.build()._toQuery(), booleanQuery.build()._toQuery());
             }
-            booleanQuery.should(originSubQuery);
         }
+        return booleanQuery;
     }
 
     /**
      * Wrap a score modifier around the query, which uses a field from the document
      * to boost the score.
+     *
      * @param query is the query to apply the score modifier on
      * @return a new query which contains the score modifier and the given query
      */
-    public QueryBuilder addScoreModifier(QueryBuilder query) {
+    public FunctionScoreQuery.Builder addScoreModifier(Query query) {
 
         // describe the function to manipulate the score
-        FieldValueFactorFunctionBuilder scoreFunc = ScoreFunctionBuilders
-            .fieldValueFactorFunction( _config.boostField )
-            .missing(1.0)
-            .modifier( getModifier(_config.boostModifier) )
-            .factor( _config.boostFactor );
+        FieldValueFactorScoreFunction scoreFunc = FieldValueFactorScoreFunction.of(f -> f
+                .field(_config.boostField)
+                .missing(1.0)
+                .modifier(getModifier(_config.boostModifier))
+                .factor((double) _config.boostFactor)
+        );
 
-        return functionScoreQuery(query, scoreFunc)
-                .boostMode( getBoostMode(_config.boostMode) );
+        return QueryBuilders.functionScore()
+                .query(query)
+                .functions(FunctionScore.of(sf -> sf
+                        .fieldValueFactor(scoreFunc)
+                ))
+                .boostMode(getBoostMode(_config.boostMode));
+
     }
 
-    private Modifier getModifier(String esBoostModifier) {
-        Modifier result;
+    private FieldValueFactorModifier getModifier(String esBoostModifier) {
+        FieldValueFactorModifier result;
         switch (esBoostModifier) {
-        case "LN":
-            result = Modifier.LN;
-            break;
-        case "LN1P":
-            result = Modifier.LN1P;
-            break;
-        case "LN2P":
-            result = Modifier.LN2P;
-            break;
-        case "LOG":
-            result = Modifier.LOG;
-            break;
-        case "LOG1P":
-            result = Modifier.LOG1P;
-            break;
-        case "LOG2P":
-            result = Modifier.LOG2P;
-            break;
-        case "NONE":
-            result = Modifier.NONE;
-            break;
-        case "RECIPROCAL":
-            result = Modifier.RECIPROCAL;
-            break;
-        case "SQRT":
-            result = Modifier.SQRT;
-            break;
-        case "SQUARE":
-            result = Modifier.SQUARE;
-            break;
-
-        default:
-            result = Modifier.LOG1P;
-            break;
+            case "LN":
+                result = FieldValueFactorModifier.Ln;
+                break;
+            case "LN1P":
+                result = FieldValueFactorModifier.Ln1p;
+                break;
+            case "LN2P":
+                result = FieldValueFactorModifier.Ln2p;
+                break;
+            case "LOG":
+                result = FieldValueFactorModifier.Log;
+                break;
+            case "LOG1P":
+                result = FieldValueFactorModifier.Log1p;
+                break;
+            case "LOG2P":
+                result = FieldValueFactorModifier.Log2p;
+                break;
+            case "NONE":
+                result = FieldValueFactorModifier.None;
+                break;
+            case "RECIPROCAL":
+                result = FieldValueFactorModifier.Reciprocal;
+                break;
+            case "SQRT":
+                result = FieldValueFactorModifier.Sqrt;
+                break;
+            case "SQUARE":
+                result = FieldValueFactorModifier.Square;
+                break;
+            default:
+                result = FieldValueFactorModifier.Log1p;
+                break;
         }
         return result;
     }
 
-    private CombineFunction getBoostMode(String esBoostMode) {
-        CombineFunction result;
+    private FunctionBoostMode getBoostMode(String esBoostMode) {
+        FunctionBoostMode result;
         switch (esBoostMode) {
-        case "SUM":
-            result = CombineFunction.SUM;
-            break;
-        case "AVG":
-            result = CombineFunction.AVG;
-            break;
-        case "MAX":
-            result = CombineFunction.MAX;
-            break;
-        case "MIN":
-            result = CombineFunction.MIN;
-            break;
-        case "MULTIPLY":
-            result = CombineFunction.MULTIPLY;
-            break;
-        case "REPLACE":
-            result = CombineFunction.REPLACE;
-            break;
-        default:
-            result = CombineFunction.SUM;
-            break;
+            case "SUM":
+                result = FunctionBoostMode.Sum;
+                break;
+            case "AVG":
+                result = FunctionBoostMode.Avg;
+                break;
+            case "MAX":
+                result = FunctionBoostMode.Max;
+                break;
+            case "MIN":
+                result = FunctionBoostMode.Min;
+                break;
+            case "MULTIPLY":
+                result = FunctionBoostMode.Multiply;
+                break;
+            case "REPLACE":
+                result = FunctionBoostMode.Replace;
+                break;
+            default:
+                result = FunctionBoostMode.Sum;
+                break;
         }
         return result;
     }
 
     private Map<String, Float> getFieldBoostMap(String[] indexSearchDefaultFields) {
         Map<String, Float> result = new HashMap<>();
-        for (String field:indexSearchDefaultFields) {
-            if(field.contains("^")){
+        for (String field : indexSearchDefaultFields) {
+            if (field.contains("^")) {
                 String[] split = field.split("\\^");
                 result.put(split[0], Float.parseFloat(split[1]));
-            }
-            else{
-                result.put(field, Float.valueOf(1.0F));
+            } else {
+                result.put(field, 1.0F);
             }
         }
         return result;
