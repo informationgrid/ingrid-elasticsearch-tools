@@ -381,7 +381,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         IngridHitDetail detail = new IngridHitDetail(hit, title, summary);
 
-        String dataSourceName = dHit.fields().get(PlugDescription.DATA_SOURCE_NAME).toString();
+        String dataSourceName = getStringValue(dHit.fields().get("dataSourceName"));
 
         if (dataSourceName == null) {
             log.error("The field dataSourceName could not be fetched from search index. This index field has to be stored! " +
