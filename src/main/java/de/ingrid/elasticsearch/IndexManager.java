@@ -27,10 +27,15 @@ import co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester;
 import co.elastic.clients.elasticsearch._helpers.bulk.BulkListener;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.IdsQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import co.elastic.clients.elasticsearch.cat.indices.IndicesRecord;
-import co.elastic.clients.elasticsearch.core.*;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
+import co.elastic.clients.elasticsearch.core.IndexRequest;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import co.elastic.clients.elasticsearch.core.bulk.DeleteOperation;
@@ -44,6 +49,7 @@ import co.elastic.clients.elasticsearch.indices.get_mapping.IndexMappingRecord;
 import co.elastic.clients.json.JsonData;
 import de.ingrid.utils.ElasticDocument;
 import de.ingrid.utils.IngridDocument;
+import de.ingrid.utils.IngridHit;
 import de.ingrid.utils.PlugDescription;
 import de.ingrid.utils.xml.XMLSerializer;
 import org.apache.logging.log4j.LogManager;
@@ -589,9 +595,9 @@ public class IndexManager implements IIndexManager {
                 // add index request to queue to avoid sending of too many requests
                 _bulkProcessor.add(BulkOperation.of(op -> op
                         .update(idx -> idx
-                            .index("ingrid_meta")
-                            .id(docId)
-                            .action(a -> a.doc(info))
+                                .index("ingrid_meta")
+                                .id(docId)
+                                .action(a -> a.doc(info))
                         )));
             } else if (totalHits == 0) {
                 // create document immediately so that it's available for further requests
@@ -689,17 +695,23 @@ public class IndexManager implements IIndexManager {
         }
     }
 
-    public ElasticDocument getDocById(Object id) {
-        String idAsString = String.valueOf(id);
+    public ElasticDocument getDocById(IngridHit hit) {
+        String idAsString = String.valueOf(hit.getDocumentId());
+        String plugId = hit.getPlugId();
         IndexInfo[] indexNames = _config.activeIndices;
         // iterate over all indices until document was found
         for (IndexInfo indexName : indexNames) {
             try {
-                Map<String, Object> source = _client.get(g -> g
+                Map<String, Object> source = this._client.search((g) -> g
                                 .index(indexName.getRealIndexName())
-                                .id(idAsString)
-                                .source(s -> s.fields(List.of(_config.indexFieldsIncluded.split(","))))
-                        , ElasticDocument.class).source();
+                                .query(
+                                        BoolQuery.of(bq -> bq.must(
+                                                        TermQuery.of(tq -> tq.field("iPlugId").value(plugId))._toQuery(),
+                                                        IdsQuery.of(idQ -> idQ.values(idAsString))._toQuery()
+                                                )
+                                        )._toQuery())
+                                .source((s) -> s.fetch(true))
+                        , ElasticDocument.class).hits().hits().get(0).source();
 
                 if (source != null) {
                     return new ElasticDocument(source);
