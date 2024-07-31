@@ -512,8 +512,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
     @SuppressWarnings("unchecked")
     @Override
     public Record getRecord(IngridHit hit) {
-        String documentId = hit.getDocumentId();
-        ElasticDocument document = indexManager.getDocById(documentId);
+        ElasticDocument document = indexManager.getDocById(hit);
         String[] fields = document.keySet().toArray(new String[0]);
         Record record = new Record();
         for (String name : fields) {
