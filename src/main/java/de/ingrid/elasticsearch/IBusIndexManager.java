@@ -426,9 +426,9 @@ public class IBusIndexManager implements IConfigurable, IIndexManager {
 
     }
 
-    public ElasticDocument getDocById(String documentId) {
+    public ElasticDocument getDocById(IngridHit hit) {
         IngridCall call = prepareCall( "getDocById" );
-        call.setParameter(documentId);
+        call.setParameter(hit);
 
         IngridDocument response = sendCallToIBusses(call);
         return (ElasticDocument) response.get( "result" );
