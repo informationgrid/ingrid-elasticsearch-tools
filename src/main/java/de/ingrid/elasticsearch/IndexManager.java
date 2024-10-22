@@ -68,6 +68,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 /**
@@ -698,27 +699,28 @@ public class IndexManager implements IIndexManager {
     public ElasticDocument getDocById(IngridHit hit) {
         String idAsString = String.valueOf(hit.getDocumentId());
         String plugId = hit.getPlugId();
-        IndexInfo[] indexNames = _config.activeIndices;
-        // iterate over all indices until document was found
-        for (IndexInfo indexName : indexNames) {
-            try {
-                Map<String, Object> source = this._client.search((g) -> g
-                                .index(indexName.getRealIndexName())
-                                .query(
-                                        BoolQuery.of(bq -> bq.must(
-                                                        TermQuery.of(tq -> tq.field("iPlugId").value(plugId))._toQuery(),
-                                                        IdsQuery.of(idQ -> idQ.values(idAsString))._toQuery()
-                                                )
-                                        )._toQuery())
-                                .source((s) -> s.fetch(true))
-                        , ElasticDocument.class).hits().hits().get(0).source();
+        List<String> indexNames = Arrays.stream(_config.activeIndices).map(IndexInfo::getRealIndexName).collect(Collectors.toList());
+        try {
+            List<Hit<ElasticDocument>> hits = this._client.search((g) -> g
+                            .index(indexNames)
+                            .query(
+                                    BoolQuery.of(bq -> bq.must(
+                                                    TermQuery.of(tq -> tq.field("iPlugId").value(plugId))._toQuery(),
+                                                    IdsQuery.of(idQ -> idQ.values(idAsString))._toQuery()
+                                            )
+                                    )._toQuery())
+                            .source((s) -> s.fetch(true))
+                    , ElasticDocument.class).hits().hits();
 
-                if (source != null) {
-                    return new ElasticDocument(source);
-                }
-            } catch (Exception ex) {
-                log.warn("Index was not found. We probably have to clean up or refresh the active indices here. Missing index is: " + indexName.getToAlias());
+            if (hits.isEmpty()) return null;
+
+            Map<String, Object> source = hits.get(0).source();
+
+            if (source != null) {
+                return new ElasticDocument(source);
             }
+        } catch (Exception ex) {
+            log.warn("Index was not found. We probably have to clean up or refresh the active indices here. Exception is: " + ex.getMessage());
         }
 
         return null;
