@@ -703,6 +703,7 @@ public class IndexManager implements IIndexManager {
         try {
             List<Hit<ElasticDocument>> hits = this._client.search((g) -> g
                             .index(indexNames)
+                            .ignoreUnavailable(true)
                             .query(
                                     BoolQuery.of(bq -> bq.must(
                                                     TermQuery.of(tq -> tq.field("iPlugId").value(plugId))._toQuery(),
