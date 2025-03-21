@@ -50,7 +50,7 @@
     <dependency>
       <groupId>de.ingrid</groupId>
       <artifactId>ingrid-utils</artifactId>
-      <version>7.5.0-SNAPSHOT</version>
+      <version>7.5.0</version>
     </dependency>
 
     <dependency>
@@ -80,7 +80,7 @@
     <dependency>
       <groupId>de.ingrid</groupId>
       <artifactId>ingrid-ibus-client</artifactId>
-      <version>7.5.0-SNAPSHOT</version>
+      <version>7.5.0</version>
     </dependency>
     <dependency>
       <groupId>jakarta.annotation</groupId>
