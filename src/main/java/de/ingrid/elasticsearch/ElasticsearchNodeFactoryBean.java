@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.2 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * https://joinup.ec.europa.eu/software/page/eupl
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,15 +26,19 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.TransportUtils;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
+import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.client.RestClient;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.CredentialsProvider;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -43,6 +47,7 @@ import org.springframework.stereotype.Service;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -81,7 +86,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
         return client;
     }
 
-    public void createTransportClient(ElasticConfig config) throws IOException {
+    public void createTransportClient(ElasticConfig config) throws IOException, URISyntaxException {
         if (this.client != null) {
             client.shutdown();
         }
@@ -103,18 +108,33 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
 
         // Create the low-level client
         SSLContext finalSslContext = sslContext;
-        RestClient restClient = RestClient
+        Rest5Client restClient = Rest5Client
                 .builder(hosts.toArray(new HttpHost[0]))
                 .setHttpClientConfigCallback(httpClientBuilder -> {
-                            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            httpClientBuilder.setSSLContext(finalSslContext);
-                            return httpClientBuilder;
-                        }
-                )
+                    if (credentialsProvider != null) {
+                        httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+                    }
+                    if (finalSslContext != null) {
+                        // Create the TlsStrategy using the SSLContext
+                        TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
+                                .setSslContext(sslContext)
+                                // Optional: .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                                .buildAsync();
+
+                        // Create a connection manager with that strategy
+                        PoolingAsyncClientConnectionManager connectionManager = PoolingAsyncClientConnectionManagerBuilder.create()
+                                .setTlsStrategy(tlsStrategy)
+                                .build();
+
+                        // Assign the connection manager to the builder
+                        httpClientBuilder.setConnectionManager(connectionManager);
+                    }
+//                    return httpClientBuilder;
+                })
                 .build();
 
         // Create the transport with a Jackson mapper
-        ElasticsearchTransport transport = new RestClientTransport(
+        ElasticsearchTransport transport = new Rest5ClientTransport(
                 restClient, new JacksonJsonpMapper());
 
         // And create the API client
@@ -123,9 +143,9 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
 
     private static CredentialsProvider getCredentialsProvider(ElasticConfig config) {
         if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
-            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY,
-                    new UsernamePasswordCredentials(config.username, config.password));
+            final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(new AuthScope(null, -1),
+                    new UsernamePasswordCredentials(config.username, config.password.toCharArray()));
             return credentialsProvider;
         } else return null;
     }

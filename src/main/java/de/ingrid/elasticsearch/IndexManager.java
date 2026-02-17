@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.2 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * https://joinup.ec.europa.eu/software/page/eupl
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -252,13 +252,13 @@ public class IndexManager implements IIndexManager {
     public String[] getIndices(String filter) {
         List<IndicesRecord> indicesRecords;
         try {
-            indicesRecords = this._client.cat().indices().valueBody();
+            indicesRecords = this._client.cat().indices().indices();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return indicesRecords.stream()
                 .map(IndicesRecord::index)
-                .filter(index -> index.contains(filter))
+                .filter(index -> index != null && index.contains(filter))
                 .toArray(String[]::new);
     }
 
@@ -378,7 +378,7 @@ public class IndexManager implements IIndexManager {
         Map<String, IndexAliases> indexToAliasesMap = null;
         try {
             boolean aliasExists = _client.indices().existsAlias(exists -> exists.name(indexAlias)).value();
-            if (aliasExists) indexToAliasesMap = _client.indices().getAlias(ar -> ar.name(indexAlias)).result();
+            if (aliasExists) indexToAliasesMap = _client.indices().getAlias(ar -> ar.name(indexAlias)).aliases();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -7,12 +7,12 @@
  * Licensed under the EUPL, Version 1.2 or – as soon they will be
  * approved by the European Commission - subsequent versions of the
  * EUPL (the "Licence");
- * 
+ *
  * You may not use this work except in compliance with the Licence.
  * You may obtain a copy of the Licence at:
- * 
+ *
  * https://joinup.ec.europa.eu/software/page/eupl
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the Licence is distributed on an "AS IS" basis,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,6 +33,7 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.*;
 import co.elastic.clients.json.JsonData;
+import co.elastic.clients.util.NamedValue;
 import de.ingrid.elasticsearch.ElasticConfig;
 import de.ingrid.elasticsearch.IndexInfo;
 import de.ingrid.elasticsearch.IndexManager;
@@ -343,8 +344,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         if (Arrays.asList(allFields).contains(config.indexFieldSummary)) {
             srb = srb.highlight(Highlight.of(h -> h
-//                    .type(HighlighterType.Unified)
-                    .fields(config.indexFieldSummary+"*", HighlightField.of(hf -> hf))
+                    .fields(NamedValue.of(config.indexFieldSummary + "*", HighlightField.of(hf -> hf)))
             ));
         }
 
