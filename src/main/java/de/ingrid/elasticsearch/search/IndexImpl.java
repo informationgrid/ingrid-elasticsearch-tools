@@ -87,7 +87,8 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
                                 PlugDescription.PARTNER,
                                 PlugDescription.PROVIDER,
                                 "datatype",
-                                PlugDescription.DATA_SOURCE_NAME}),
+                                PlugDescription.DATA_SOURCE_NAME,
+                                "collection.name"}),
                         Arrays.stream(config.additionalSearchDetailFields))
                 .toArray(String[]::new);
 
@@ -381,7 +382,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
 
         IngridHitDetail detail = new IngridHitDetail(hit, title, summary);
 
-        String dataSourceName = getStringValue(dHit.fields().get("dataSourceName"));
+        String dataSourceName = getStringValue(getDataSourceName(dHit));
 
         if (dataSourceName == null) {
             log.error("The field dataSourceName could not be fetched from search index. This index field has to be stored! " +
@@ -420,6 +421,14 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         }
 
         return detail;
+    }
+
+    private static JsonData getDataSourceName(Hit<ElasticDocument> dHit) {
+        JsonData result = dHit.fields().get("collection.name");
+        if (result == null) {
+            result = dHit.fields().get("dataSourceName");
+        }
+        return result;
     }
 
     private String getStringValue(JsonData jsonData) {
