@@ -158,10 +158,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         String y2 = (String) geoMap.get("y2");
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
-            queryBuilder.must(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x1)))))
-                    .must(QueryBuilders.range(r -> r.field("x2").gte(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0))))
-                    .must(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y1)))))
-                    .must(QueryBuilders.range(r -> r.field("y2").gte(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0))));
+            queryBuilder.must(QueryBuilders.range(r -> r.untyped(u -> u.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x1))))))
+                    .must(QueryBuilders.range(r -> r.untyped(u -> u.field("x2").gte(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0)))))
+                    .must(QueryBuilders.range(r -> r.untyped(u -> u.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y1))))))
+                    .must(QueryBuilders.range(r -> r.untyped(u -> u.field("y2").gte(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0)))));
         }
     }
 
@@ -187,23 +187,23 @@ public class FieldQueryIGCConverter implements IQueryParsers {
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
             queryBuilder.must(QueryBuilders.bool(b -> b
-                    .should(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(Double.valueOf(x1))).lte(JsonData.of(Double.valueOf(x2)))))
-                    .should(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(Double.valueOf(y1))).lte(JsonData.of(Double.valueOf(y2)))))
-                    .should(QueryBuilders.range(r -> r.field("x2").gte(JsonData.of(Double.valueOf(x1))).lte(JsonData.of(Double.valueOf(x2)))))
-                    .should(QueryBuilders.range(r -> r.field("y2").gte(JsonData.of(Double.valueOf(y1))).lte(JsonData.of(Double.valueOf(y2))))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("x1").gte(JsonData.of(Double.valueOf(x1))).lte(JsonData.of(Double.valueOf(x2))))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("y1").gte(JsonData.of(Double.valueOf(y1))).lte(JsonData.of(Double.valueOf(y2))))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("x2").gte(JsonData.of(Double.valueOf(x1))).lte(JsonData.of(Double.valueOf(x2))))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("y2").gte(JsonData.of(Double.valueOf(y1))).lte(JsonData.of(Double.valueOf(y2)))))))
             );
 
             queryBuilder.must(QueryBuilders.bool(b -> b
-                    .should(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x1)))))
-                    .should(QueryBuilders.range(r -> r.field("x2").gte(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0))))
-                    .should(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y1)))))
-                    .should(QueryBuilders.range(r -> r.field("y2").gte(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0)))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x1))))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("x2").gte(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0)))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y1))))))
+                    .should(QueryBuilders.range(r -> r.untyped(u -> u.field("y2").gte(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0))))))
             );
 
-            queryBuilder.must(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x2)))))
-                    .must(QueryBuilders.range(r -> r.field("x2").gte(JsonData.of(Double.valueOf(x1))).lte(JsonData.of(180.0))))
-                    .must(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y2)))))
-                    .must(QueryBuilders.range(r -> r.field("y2").gte(JsonData.of(Double.valueOf(y1))).lte(JsonData.of(180.0))));
+            queryBuilder.must(QueryBuilders.range(r -> r.untyped(u -> u.field("x1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(x2))))))
+                    .must(QueryBuilders.range(r -> r.untyped(u -> u.field("x2").gte(JsonData.of(Double.valueOf(x1))).lte(JsonData.of(180.0)))))
+                    .must(QueryBuilders.range(r -> r.untyped(u -> u.field("y1").gte(JsonData.of(-180.0)).lte(JsonData.of(Double.valueOf(y2))))))
+                    .must(QueryBuilders.range(r -> r.untyped(u -> u.field("y2").gte(JsonData.of(Double.valueOf(y1))).lte(JsonData.of(180.0)))));
         }
     }
 
@@ -214,10 +214,10 @@ public class FieldQueryIGCConverter implements IQueryParsers {
         String y2 = (String) geoMap.get("y2");
 
         if (x1 != null && x2 != null && y1 != null && y2 != null) {
-            queryBuilder.mustNot(QueryBuilders.range(r -> r.field("x1").gte(JsonData.of(-180.0)).lt(JsonData.of(Double.valueOf(x1)))))
-                    .mustNot(QueryBuilders.range(r -> r.field("x2").gt(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0))))
-                    .mustNot(QueryBuilders.range(r -> r.field("y1").gte(JsonData.of(-180.0)).lt(JsonData.of(Double.valueOf(y1)))))
-                    .mustNot(QueryBuilders.range(r -> r.field("y2").gt(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0))));
+            queryBuilder.mustNot(QueryBuilders.range(r -> r.untyped(u -> u.field("x1").gte(JsonData.of(-180.0)).lt(JsonData.of(Double.valueOf(x1))))))
+                    .mustNot(QueryBuilders.range(r -> r.untyped(u -> u.field("x2").gt(JsonData.of(Double.valueOf(x2))).lte(JsonData.of(180.0)))))
+                    .mustNot(QueryBuilders.range(r -> r.untyped(u -> u.field("y1").gte(JsonData.of(-180.0)).lt(JsonData.of(Double.valueOf(y1))))))
+                    .mustNot(QueryBuilders.range(r -> r.untyped(u -> u.field("y2").gt(JsonData.of(Double.valueOf(y2))).lte(JsonData.of(180.0)))));
         }
     }
 
@@ -295,12 +295,12 @@ private static void prepareInsideTime(BoolQuery.Builder queryBuilder, Map<String
     String t2 = (String) timeMap.get("t2");
 
     if (t1 != null && t2 != null) {
-        queryBuilder.should(QueryBuilders.range(r -> r.field("t0").gte(JsonData.of(t1)).lte(JsonData.of(t2))))
+        queryBuilder.should(QueryBuilders.range(r -> r.untyped(u -> u.field("t0").gte(JsonData.of(t1)).lte(JsonData.of(t2)))))
                 .should(QueryBuilders.bool(b -> b
-                        .must(QueryBuilders.range(r -> r.field("t1").gte(JsonData.of(t1)).lte(JsonData.of(t2))))
-                        .must(QueryBuilders.range(r -> r.field("t2").gte(JsonData.of(t1)).lte(JsonData.of(t2))))));
+                        .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t1").gte(JsonData.of(t1)).lte(JsonData.of(t2)))))
+                        .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t2").gte(JsonData.of(t1)).lte(JsonData.of(t2)))))));
     } else if (t0 != null) {
-        queryBuilder.must(QueryBuilders.range(r -> r.field("t0").gte(JsonData.of(t0)).lte(JsonData.of(t0))));
+        queryBuilder.must(QueryBuilders.range(r -> r.untyped(u -> u.field("t0").gte(JsonData.of(t0)).lte(JsonData.of(t0)))));
     }
 }
 
@@ -310,11 +310,11 @@ private static void prepareIncludeTimeQuery(BoolQuery.Builder queryBuilder, Map<
     String t2 = (String) timeMap.get("t2");
 
     if (t1 != null && t2 != null) {
-        queryBuilder.must(QueryBuilders.range(r -> r.field("t1").lte(JsonData.of(t1))))
-                .must(QueryBuilders.range(r -> r.field("t2").gte(JsonData.of(t2))));
+        queryBuilder.must(QueryBuilders.range(r -> r.untyped(u -> u.field("t1").lte(JsonData.of(t1)))))
+                .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t2").gte(JsonData.of(t2)))));
     } else if (t0 != null) {
-        queryBuilder.must(QueryBuilders.range(r -> r.field("t1").lte(JsonData.of(t0))))
-                .must(QueryBuilders.range(r -> r.field("t2").gte(JsonData.of(t0))));
+        queryBuilder.must(QueryBuilders.range(r -> r.untyped(u -> u.field("t1").lte(JsonData.of(t0)))))
+                .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t2").gte(JsonData.of(t0)))));
     }
 }
 
@@ -326,11 +326,11 @@ private static void prepareTraverseTime(BoolQuery.Builder queryBuilder, Map<Stri
     if (t1 != null && t2 != null) {
         queryBuilder.must(QueryBuilders.bool(b -> b
                 .should(QueryBuilders.bool(sb -> sb
-                        .must(QueryBuilders.range(r -> r.field("t1").lte(JsonData.of(t1))))
-                        .must(QueryBuilders.range(r -> r.field("t2").gte(JsonData.of(t1)).lte(JsonData.of(t2))))))
+                        .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t1").lte(JsonData.of(t1)))))
+                        .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t2").gte(JsonData.of(t1)))))))
                 .should(QueryBuilders.bool(sb -> sb
-                        .must(QueryBuilders.range(r -> r.field("t1").gte(JsonData.of(t1)).lte(JsonData.of(t2))))
-                        .must(QueryBuilders.range(r -> r.field("t2").gte(JsonData.of(t2))))))));
+                        .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t1").gte(JsonData.of(t1)).lte(JsonData.of(t2)))))
+                        .must(QueryBuilders.range(r -> r.untyped(u -> u.field("t2").gte(JsonData.of(t2)))))))));
     } else if (t0 != null) {
         queryBuilder.must(QueryBuilders.bool(b -> b
                 .should(QueryBuilders.term(t -> t.field("t0").value(t0)))

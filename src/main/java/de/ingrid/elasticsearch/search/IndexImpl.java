@@ -33,6 +33,7 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.*;
 import co.elastic.clients.json.JsonData;
+import co.elastic.clients.util.NamedValue;
 import de.ingrid.elasticsearch.ElasticConfig;
 import de.ingrid.elasticsearch.IndexInfo;
 import de.ingrid.elasticsearch.IndexManager;
@@ -345,7 +346,7 @@ public class IndexImpl implements ISearcher, IDetailer, IRecordLoader {
         if (Arrays.asList(allFields).contains(config.indexFieldSummary)) {
             srb = srb.highlight(Highlight.of(h -> h
 //                    .type(HighlighterType.Unified)
-                    .fields(config.indexFieldSummary+"*", HighlightField.of(hf -> hf))
+                    .fields(NamedValue.of(config.indexFieldSummary + "*", HighlightField.of(hf -> hf)))
             ));
         }
 
