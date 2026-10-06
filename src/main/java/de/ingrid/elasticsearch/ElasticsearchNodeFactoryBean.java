@@ -26,15 +26,16 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.TransportUtils;
-import co.elastic.clients.transport.rest_client.RestClientTransport;
+import co.elastic.clients.transport.rest5_client.Rest5ClientTransport;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5Client;
+import co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.elasticsearch.client.RestClient;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.CredentialsProvider;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
+import org.apache.hc.core5.http.HttpHost;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -43,6 +44,7 @@ import org.springframework.stereotype.Service;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -81,9 +83,9 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
         return client;
     }
 
-    public void createTransportClient(ElasticConfig config) throws IOException {
+    public void createTransportClient(ElasticConfig config) throws IOException, URISyntaxException {
         if (this.client != null) {
-            client.shutdown();
+            client.close();
         }
 
         List<HttpHost> hosts = new ArrayList<>();
@@ -102,19 +104,22 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
         }
 
         // Create the low-level client
-        SSLContext finalSslContext = sslContext;
-        RestClient restClient = RestClient
-                .builder(hosts.toArray(new HttpHost[0]))
-                .setHttpClientConfigCallback(httpClientBuilder -> {
-                            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
-                            httpClientBuilder.setSSLContext(finalSslContext);
-                            return httpClientBuilder;
-                        }
-                )
-                .build();
+        Rest5ClientBuilder restClientBuilder = Rest5Client
+                .builder(hosts.toArray(new HttpHost[0]));
+
+        if (credentialsProvider != null) {
+            restClientBuilder.setHttpClientConfigCallback(httpClientBuilder ->
+                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
+            );
+        }
+        if (sslContext != null) {
+            restClientBuilder.setSSLContext(sslContext);
+        }
+
+        Rest5Client restClient = restClientBuilder.build();
 
         // Create the transport with a Jackson mapper
-        ElasticsearchTransport transport = new RestClientTransport(
+        ElasticsearchTransport transport = new Rest5ClientTransport(
                 restClient, new JacksonJsonpMapper());
 
         // And create the API client
@@ -123,9 +128,10 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
 
     private static CredentialsProvider getCredentialsProvider(ElasticConfig config) {
         if (config.username != null && !config.username.isEmpty() && config.password != null && !config.password.isEmpty()) {
-            final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY,
-                    new UsernamePasswordCredentials(config.username, config.password));
+            final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(
+                    new AuthScope(null, -1),
+                    new UsernamePasswordCredentials(config.username, config.password.toCharArray()));
             return credentialsProvider;
         } else return null;
     }
@@ -134,7 +140,7 @@ public class ElasticsearchNodeFactoryBean implements FactoryBean<ElasticsearchCl
     public void destroy() {
         try {
             if (client != null)
-                client.shutdown();
+                client.close();
         } catch (final Exception e) {
             log.error("Error closing Elasticsearch node: ", e);
         }

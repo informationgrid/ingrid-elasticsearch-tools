@@ -51,9 +51,11 @@ public class RangeQueryConverter implements IQueryParsers {
             String finalFrom = from;
             String finalTo = to;
             Query subQuery = RangeQuery.of(r -> r
-                    .field(rangeQuery.getRangeName())
-                    .gte(JsonData.of(finalFrom))
-                    .lte(JsonData.of(finalTo))
+                    .untyped(u -> u
+                            .field(rangeQuery.getRangeName())
+                            .gte(JsonData.of(finalFrom))
+                            .lte(JsonData.of(finalTo))
+                    )
             )._toQuery();
 
             if (rangeQuery.isRequred()) {
